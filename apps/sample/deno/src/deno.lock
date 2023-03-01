@@ -1,0 +1,19 @@
+{
+  "version": "2",
+  "remote": {
+    "https://deno.land/x/concurrentjs@v0.5.7/dist/src/deno/index.js": "6eeb82869b3b7a6ad258ac032e2630297f957c324a3254625e2450773d5b43f1",
+    "https://deno.land/x/concurrentjs@v0.5.7/dist/src/deno/worker_script.js": "268e24990b7dd503ccd2e48a9e1fa5cd035a0eb67b3212038c103f94819cea4c"
+  },
+  "npm": {
+    "specifiers": {
+      "extra-bigint": "extra-bigint@1.1.10",
+      "extra-bigint@^1.1.10": "extra-bigint@1.1.10"
+    },
+    "packages": {
+      "extra-bigint@1.1.10": {
+        "integrity": "sha512-HFJ1EIBxiN0AMaKGuCOW3h/7ZBpEmT8hdebL7dwiiqa4cc6ZIGmLqO4cWe+GaZD+6P1R0t1S9shYh3bP8Ly0qg==",
+        "dependencies": {}
+      }
+    }
+  }
+}

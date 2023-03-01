@@ -1,0 +1,57 @@
+{
+  "type": "module",
+  "name": "@bitair/concurrent.js",
+  "version": "0.5.7",
+  "description": "Non-blocking Computation for JavaScript (Node.js, Deno & Browsers)",
+  "main": "src/node/index.js",
+  "browser": "src/browser/index.js",
+  "types": "src/index.d.ts",
+  "keywords": [
+    "concurrent-computing",
+    "parallel-computing",
+    "vertical-scaling",
+    "multithreading",
+    "green-thread",
+    "coroutines",
+    "web-workers",
+    "worker-threads",
+    "non-blocking",
+    "reactive-programming"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "browser": "./src/browser/index.js",
+        "node": "./src/node/index.js"
+      },
+      "require": {
+        "browser": null,
+        "node": "./src/node/index.cjs"
+      },
+      "types": {
+        "import": "./src/index.d.ts",
+        "require": "./src/index.d.cts"
+      }
+    },
+    "./worker_script": {
+      "browser": {
+        "default": "./src/browser/worker_script.js"
+      },
+      "node": {
+        "default": "./src/browser/worker_script.js"
+      }
+    },
+    "./deno": {
+      "import": "./src/deno/index.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitair-org/concurrent.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bitair-org/concurrent.js/issues"
+  },
+  "homepage": "https://github.com/bitair-org/concurrent.js#readme",
+  "license": "MIT"
+}

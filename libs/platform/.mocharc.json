@@ -1,0 +1,8 @@
+{
+  "spec": ["test/**/*.ts"],
+  "node-option": [
+    "require=tsconfig-paths",
+    "loader=ts-node/esm"    
+  ],
+  "recursive": true
+}
