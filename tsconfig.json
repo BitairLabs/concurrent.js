@@ -1,0 +1,11 @@
+{
+  "extends": "@tsconfig/strictest/tsconfig.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "downlevelIteration": true,
+    "skipLibCheck": false
+  },
+  "exclude": ["*.js"]
+}

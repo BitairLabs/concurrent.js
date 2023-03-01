@@ -1,0 +1,7 @@
+{
+    "type": "module",
+    "scripts": {
+        "start": "deno run --allow-read --allow-net --allow-env src/index.ts"
+    },
+    "license": "MIT"
+}

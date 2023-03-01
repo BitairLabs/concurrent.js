@@ -1,0 +1,24 @@
+{
+  "scripts": {
+    "clean": "bash scripts/clean.sh",
+    "format": "prettier --write '**/*.{js,ts,tsx,md,yaml}'",
+    "lint": "npx eslint .; pnpm -r --filter=./**/* lint",
+    "build": "pnpm -r --filter=./**/* build",
+    "test": "pnpm -r --filter=./**/* test",
+    "dist": "bash scripts/dist.sh",
+    "publish:dry": "npm run dist && npm publish ./dist --dry-run --access public",
+    "publish": "npm run dist && npm publish ./dist --access public"
+  },
+  "devDependencies": {
+    "@tsconfig/strictest": "^1.0.2",
+    "@types/node": "^18.13.0",
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "@typescript-eslint/parser": "^5.52.0",
+    "eslint": "^8.34.0",
+    "eslint-config-prettier": "^8.6.0",
+    "prettier": "^2.8.4",
+    "typescript": "^4.9.5",
+    "esbuild": "^0.17.8"
+  },
+  "license": "MIT"
+}

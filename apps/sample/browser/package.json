@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "scripts": {
+    "lint": "npm run prepare && npx tsc --noEmit",
+    "build": "npm run prepare && bash ./scripts/build.sh",
+    "prepare": "bash ./scripts/prepare.sh",
+    "start": "npx http-server static"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "extra-bigint": "^1.1.10"
+  },
+  "devDependencies": {
+    "@tsconfig/strictest": "^1.0.2",
+    "esbuild": "^0.17.8",
+    "typescript": "^4.9.4"
+  },
+  "license": "MIT"
+}
