@@ -5,7 +5,7 @@ npm i @bitair/concurrent.js@latest extra-bigint
 touch index.mjs
 
 cat >./index.mjs <<EOF
-import concurrent from '@bitair/concurrent.js'
+import { concurrent } from '@bitair/concurrent.js'
 
 // Import it as usual to see the difference.
 // import { factorial } from 'extra-bigint'
