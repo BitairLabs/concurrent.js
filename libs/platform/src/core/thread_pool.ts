@@ -1,7 +1,7 @@
 import { Thread } from './thread.js'
 
 import type { ConcurrencySettings, ThreadPoolSettings } from '../index.d.js'
-import type { Constructor, IWorkerFactory } from './types.js'
+import type { IWorkerFactory } from './types.js'
 import type { ThreadedObject } from './threaded_object.js'
 import { Task } from './task.js'
 import { ConcurrencyError } from './error.js'
@@ -48,7 +48,7 @@ export class ThreadPool {
     Object.assign(this.settings, settings)
   }
 
-  async getThread(exclusive: boolean): Promise<Thread> {
+  async getThread(exclusive = false): Promise<Thread> {
     if (this.totalThreads < this.settings.maxThreads) this.addThread()
 
     const thread = await new Promise((resolve, reject) => {
@@ -62,7 +62,7 @@ export class ThreadPool {
     return thread as never
   }
 
-  registerObject<T extends ThreadedObject<Constructor>>(object: T, id: number, thread: Thread) {
+  registerObject<T extends ThreadedObject>(object: T, id: number, thread: Thread) {
     this.objectRegistry.register(
       object,
       {
@@ -73,7 +73,7 @@ export class ThreadPool {
     )
   }
 
-  unregisterObject<T extends ThreadedObject<Constructor>>(object: T) {
+  unregisterObject<T extends ThreadedObject>(object: T) {
     this.objectRegistry.unregister(object)
   }
 

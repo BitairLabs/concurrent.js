@@ -1,3 +1,2 @@
-import { Calculator, add } from './calculator.js'
-
-export { Calculator, add }
+export { SampleObject } from './sample_module.js'
+export * as math from './math.js'

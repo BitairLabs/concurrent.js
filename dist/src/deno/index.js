@@ -38,19 +38,25 @@ var DenoWorker = class {
 // libs/platform/src/core/constants.ts
 var ErrorMessage = {
   InternalError: { code: 500, text: "Internal error has occurred." },
-  DisposeOverridden: { code: 501, text: "'dispose' method will be overridden." },
   InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{1}'." },
   InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{1}'" },
   CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{1}'." },
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." }
+  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." },
+  AsyncSetterRequired: { code: 510, text: "Value must be an instance of AsyncSetter." }
+};
+var SYMBOL = {
+  DISPOSE: Symbol("DISPOSE")
 };
 
 // libs/platform/src/core/utils.ts
 function isFunction(val) {
   return typeof val === "function";
+}
+function isSymbol(val) {
+  return typeof val === "symbol";
 }
 function format(str, ...params) {
   for (let i = 1; i <= params.length; i++) {
@@ -77,34 +83,63 @@ var ConcurrencyError = class extends Error {
   }
 };
 
+// libs/platform/src/core/async_setter.ts
+var AsyncSetter = class {
+  constructor(value) {
+    this.value = value;
+  }
+  static create(value) {
+    return new AsyncSetter(value);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  done(_error) {
+    throw new Error("Callback is accessed before being initialized.");
+  }
+  wait() {
+    return new Promise((resolve, reject) => {
+      this.done = (error) => {
+        if (error)
+          reject(error);
+        else
+          resolve();
+      };
+    });
+  }
+};
+
 // libs/platform/src/core/task.ts
 var Task = class {
   constructor(type, data) {
     this.type = type;
     this.data = data;
   }
-  static instantiateObject(moduleSrc, ctorName, ctorArgs) {
-    const data = [moduleSrc, ctorName, ctorArgs];
+  static instantiateObject(moduleSrc, exportName, ctorArgs) {
+    const data = [moduleSrc, exportName, ctorArgs];
     return new Task(0 /* InstantiateObject */, data);
   }
-  static invokeMethod(objectId, methodName, args) {
+  static getInstanceProperty(objectId, propName) {
+    const data = [objectId, propName];
+    return new Task(1 /* GetInstanceProperty */, data);
+  }
+  static setInstanceProperty(objectId, propName, value) {
+    const data = [objectId, propName, value];
+    return new Task(2 /* SetInstanceProperty */, data);
+  }
+  static invokeInstanceMethod(objectId, methodName, args) {
     const data = [objectId, methodName, args];
-    return new Task(1 /* InvokeMethod */, data);
+    return new Task(3 /* InvokeInstanceMethod */, data);
   }
   static disposeObject(objectId) {
     const data = [objectId];
-    return new Task(2 /* DisposeObject */, data);
+    return new Task(4 /* DisposeObject */, data);
   }
   static invokeFunction(moduleSrc, functionName, args) {
     const data = [moduleSrc, functionName, args];
-    return new Task(3 /* InvokeFunction */, data);
+    return new Task(5 /* InvokeFunction */, data);
   }
 };
 
 // libs/platform/src/core/threaded_object.ts
-var FUNCTION = "function";
-var CONSTRUCTOR = "constructor";
-var DISPOSE = "dispose";
 var ThreadedObject = class {
   constructor(pool, moduleSrc, exportName, ctor, ctorArgs, execSettings) {
     this.pool = pool;
@@ -112,47 +147,84 @@ var ThreadedObject = class {
     this.exportName = exportName;
     this.ctorArgs = ctorArgs;
     this.execSettings = execSettings;
+    const obj = Reflect.construct(ctor, ctorArgs);
     const _this = this;
-    const prototype = ctor.prototype;
-    for (const property of Object.getOwnPropertyNames(prototype)) {
-      if (property === DISPOSE)
-        throw new ConcurrencyError(ErrorMessage.DisposeOverridden);
-      if (typeof prototype[property] === FUNCTION && property !== CONSTRUCTOR) {
-        const methodName = property;
-        this.proxy[methodName] = async function invoke(...params) {
-          return _this.invoke.call(_this, methodName, params);
-        };
+    this.proxy = createProxy(obj, {
+      get(key) {
+        if (key === SYMBOL.DISPOSE)
+          return _this.dispose.bind(_this);
+        return _this.getProperty.call(_this, key);
+      },
+      set(key, value) {
+        return _this.setProperty.call(_this, key, value);
+      },
+      apply(key, args) {
+        return _this.invoke.call(_this, key, args);
       }
-    }
-    this.proxy[DISPOSE] = async () => await this.dispose();
+    });
   }
   thread;
   id;
   instantiated = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   proxy = {};
-  async invoke(methodName, args) {
-    if (!this.instantiated) {
+  async getProperty(methodName) {
+    if (!this.instantiated)
       await this.instantiate();
-      this.instantiated = true;
-    }
     const thread = this.thread;
-    const task = Task.invokeMethod(this.id, methodName, args);
+    const task = Task.getInstanceProperty(this.id, methodName);
     return await thread.run(task);
   }
-  async instantiate() {
-    const thread = this.thread = await this.pool.getThread(this.execSettings.parallel);
-    const ctorName = this.exportName;
-    const task = Task.instantiateObject(this.moduleSrc, ctorName, this.ctorArgs);
-    this.id = await thread.run(task);
-    this.pool.registerObject(this, this.id, this.thread);
-    return this.id;
+  async setProperty(methodName, value) {
+    if (!this.instantiated)
+      await this.instantiate();
+    const thread = this.thread;
+    const task = Task.setInstanceProperty(this.id, methodName, value);
+    return await thread.run(task);
+  }
+  async invoke(methodName, args) {
+    if (!this.instantiated)
+      await this.instantiate();
+    const thread = this.thread;
+    const task = Task.invokeInstanceMethod(this.id, methodName, args);
+    return await thread.run(task);
   }
   async dispose() {
     this.pool.unregisterObject(this);
     this.pool.disposeObject(this.id, this.thread);
   }
+  async instantiate() {
+    const thread = this.thread = await this.pool.getThread(this.execSettings.parallel);
+    const task = Task.instantiateObject(this.moduleSrc, this.exportName, this.ctorArgs);
+    this.id = await thread.run(task);
+    this.pool.registerObject(this, this.id, this.thread);
+    this.instantiated = true;
+  }
 };
+function createProxy(obj, handler) {
+  return new Proxy(obj, {
+    get(target, key) {
+      if (isSymbol(key) && key !== SYMBOL.DISPOSE)
+        return void 0;
+      const prop = Reflect.get(target, key);
+      return !isFunction(prop) ? handler.get(key) : (...params) => handler.apply(key, params);
+    },
+    set(_target, key, setter) {
+      if (isSymbol(key) && key !== SYMBOL.DISPOSE)
+        return false;
+      if (!(setter instanceof AsyncSetter))
+        throw new ConcurrencyError(ErrorMessage.AsyncSetterRequired);
+      handler.set(key, setter.value).then(() => {
+        if (setter.done)
+          setter.done();
+      }).catch((error) => {
+        if (setter.done)
+          setter.done(error);
+      });
+      return true;
+    }
+  });
+}
 
 // libs/platform/src/core/threaded_function.ts
 var ThreadedFunction = class {
@@ -168,19 +240,15 @@ var ThreadedFunction = class {
       }
     };
   }
-  _thread;
+  thread;
   proxy;
-  async thread() {
-    if (!this._thread) {
-      const thread = await this.pool.getThread(this.execSettings.parallel);
-      this._thread = thread;
-    }
-    return this._thread;
-  }
   async invoke(args) {
-    const thread = await this.thread();
+    if (!this.thread) {
+      const thread = await this.pool.getThread(this.execSettings.parallel);
+      this.thread = thread;
+    }
     const task = Task.invokeFunction(this.moduleSrc, this.exportName, args);
-    return await thread.run(task);
+    return await this.thread.run(task);
   }
 };
 
@@ -192,29 +260,26 @@ var ModuleLoader = class {
   async load(moduleSrc, execSettings) {
     const exports = await import(moduleSrc);
     const proxy = {};
+    const _this = this;
     for (const exportName in exports) {
       if (Object.prototype.hasOwnProperty.call(exports, exportName)) {
         const _export = exports[exportName];
         if (isFunction(_export)) {
-          proxy[exportName] = this.createProxy(moduleSrc, exportName, _export, execSettings);
+          proxy[exportName] = function ExportProxy(...params) {
+            if (new.target) {
+              const obj = new ThreadedObject(_this.pool, moduleSrc, exportName, _export, params, execSettings);
+              return obj.proxy;
+            } else {
+              const fn = new ThreadedFunction(_this.pool, moduleSrc, exportName, execSettings);
+              return fn.proxy.invoke(params);
+            }
+          };
         } else {
           proxy[exportName] = _export;
         }
       }
     }
     return proxy;
-  }
-  createProxy(moduleSrc, exportName, ctor, execSettings) {
-    const pool = this.pool;
-    return function ExportProxy(...params) {
-      if (new.target) {
-        const obj = new ThreadedObject(pool, moduleSrc, exportName, ctor, params, execSettings);
-        return obj.proxy;
-      } else {
-        const fn = new ThreadedFunction(pool, moduleSrc, exportName, execSettings);
-        return fn.proxy.invoke(params);
-      }
-    };
   }
 };
 
@@ -323,7 +388,7 @@ var ThreadPool = class {
   config(settings) {
     Object.assign(this.settings, settings);
   }
-  async getThread(exclusive) {
+  async getThread(exclusive = false) {
     if (this.totalThreads < this.settings.maxThreads)
       this.addThread();
     const thread = await new Promise((resolve, reject) => {
@@ -427,6 +492,9 @@ var Master = class {
   moduleLoader;
   pool;
   started = false;
+  set(setter) {
+    return setter.wait();
+  }
   config(settings) {
     settings = settings ?? {};
     this.settings = {
@@ -470,21 +538,22 @@ var Master = class {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async dispose(obj) {
-    if (this.started && obj.dispose) {
-      await obj.dispose();
+    const dispose = Reflect.get(obj, SYMBOL.DISPOSE);
+    if (this.started && dispose) {
+      await dispose();
     }
   }
 };
 
 // libs/platform/src/deno/index.ts
-var master = new Master({
+var concurrent = new Master({
   create: () => {
-    const BASE_URL = Deno.env.get("BASE_URL");
-    const src = new URL("./worker_script.js", BASE_URL ? new URL(BASE_URL) : import.meta.url);
+    const src = new URL("./worker_script.js", import.meta.url);
     return new DenoWorker(src);
   }
 });
-var deno_default = master;
+var setAsync = AsyncSetter.create;
 export {
-  deno_default as default
+  setAsync as AsyncSetter,
+  concurrent
 };

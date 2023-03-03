@@ -5,6 +5,7 @@
     "lint": "npx eslint .; pnpm -r --filter=./**/* lint",
     "build": "pnpm -r --filter=./**/* build",
     "test": "pnpm -r --filter=./**/* test",
+    "test:platform": "pnpm -r --filter=./libs/platform test",
     "dist": "bash scripts/dist.sh",
     "publish:dry": "npm run dist && npm publish ./dist --dry-run --access public",
     "publish": "npm run dist && npm publish ./dist --access public"

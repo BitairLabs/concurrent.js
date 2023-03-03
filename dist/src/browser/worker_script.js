@@ -1,14 +1,17 @@
 // libs/platform/src/core/constants.ts
 var ErrorMessage = {
   InternalError: { code: 500, text: "Internal error has occurred." },
-  DisposeOverridden: { code: 501, text: "'dispose' method will be overridden." },
   InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{1}'." },
   InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{1}'" },
   CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{1}'." },
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." }
+  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." },
+  AsyncSetterRequired: { code: 510, text: "Value must be an instance of AsyncSetter." }
+};
+var SYMBOL = {
+  DISPOSE: Symbol("DISPOSE")
 };
 
 // libs/platform/src/core/utils.ts
@@ -43,15 +46,23 @@ var WorkerManager = class {
             ;
             [error, result] = await this.instantiateObject(...taskData);
             break;
-          case 1 /* InvokeMethod */:
+          case 1 /* GetInstanceProperty */:
             ;
-            [error, result] = await this.invokeMethod(...taskData);
+            [error, result] = await this.getInstanceProperty(...taskData);
             break;
-          case 2 /* DisposeObject */:
+          case 2 /* SetInstanceProperty */:
+            ;
+            [error, result] = await this.setInstanceProperty(...taskData);
+            break;
+          case 3 /* InvokeInstanceMethod */:
+            ;
+            [error, result] = await this.invokeInstanceMethod(...taskData);
+            break;
+          case 4 /* DisposeObject */:
             ;
             [error, result] = this.disposeObject(...taskData);
             break;
-          case 3 /* InvokeFunction */:
+          case 5 /* InvokeFunction */:
             ;
             [error, result] = await this.invokeFunction(...taskData);
             break;
@@ -67,15 +78,39 @@ var WorkerManager = class {
       throw new ConcurrencyError(ErrorMessage.InvalidMessageType, type);
     }
   }
-  async instantiateObject(moduleSrc, ctorName, ctorArgs = []) {
+  async instantiateObject(moduleSrc, exportName, ctorArgs = []) {
     const module = await import(moduleSrc);
-    const ctor = module[ctorName];
+    const ctor = module[exportName];
     const obj = new ctor(...ctorArgs);
     this.lastObjectId += 1;
     this.objects.set(this.lastObjectId, obj);
     return [void 0, this.lastObjectId];
   }
-  async invokeMethod(objectId, name, args = []) {
+  async getInstanceProperty(objectId, name) {
+    const obj = this.objects.get(objectId);
+    if (!obj)
+      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    let result, error;
+    try {
+      result = Reflect.get(obj, name);
+    } catch (err) {
+      error = err;
+    }
+    return [error, result];
+  }
+  async setInstanceProperty(objectId, name, value) {
+    const obj = this.objects.get(objectId);
+    if (!obj)
+      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    let result, error;
+    try {
+      result = Reflect.set(obj, name, value);
+    } catch (err) {
+      error = err;
+    }
+    return [error, result];
+  }
+  async invokeInstanceMethod(objectId, name, args = []) {
     const obj = this.objects.get(objectId);
     if (!obj)
       throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
