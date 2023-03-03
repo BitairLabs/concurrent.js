@@ -1,14 +1,14 @@
 import { ErrorMessage, TaskType, ThreadMessageType } from './constants.js'
 import { ConcurrencyError } from './error.js'
 
-import type { Constructor, InvokeFunctionData } from './types.js'
+import type { Constructor, GetInstancePropertyData, InvokeFunctionData, SetInstancePropertyData } from './types.js'
 
 import type {
   ThreadMessage,
   TaskInfo,
   TaskResult,
   InstantiateObjectData,
-  InvokeMethodData,
+  InvokeInstanceMethodData,
   DisposeObjectData
 } from './types.js'
 
@@ -26,8 +26,14 @@ export class WorkerManager {
           case TaskType.InstantiateObject:
             ;[error, result] = await this.instantiateObject(...(taskData as InstantiateObjectData))
             break
-          case TaskType.InvokeMethod:
-            ;[error, result] = await this.invokeMethod(...(taskData as InvokeMethodData))
+          case TaskType.GetInstanceProperty:
+            ;[error, result] = await this.getInstanceProperty(...(taskData as GetInstancePropertyData))
+            break
+          case TaskType.SetInstanceProperty:
+            ;[error, result] = await this.setInstanceProperty(...(taskData as SetInstancePropertyData))
+            break
+          case TaskType.InvokeInstanceMethod:
+            ;[error, result] = await this.invokeInstanceMethod(...(taskData as InvokeInstanceMethodData))
             break
           case TaskType.DisposeObject:
             ;[error, result] = this.disposeObject(...(taskData as DisposeObjectData))
@@ -47,16 +53,45 @@ export class WorkerManager {
       throw new ConcurrencyError(ErrorMessage.InvalidMessageType, type)
     }
   }
-  private async instantiateObject(moduleSrc: string, ctorName: string, ctorArgs: unknown[] = []) {
+
+  private async instantiateObject(moduleSrc: string, exportName: string, ctorArgs: unknown[] = []) {
     const module = await import(moduleSrc)
-    const ctor = module[ctorName] as Constructor
+    const ctor = module[exportName] as Constructor
     const obj = new ctor(...ctorArgs)
     this.lastObjectId += 1
     this.objects.set(this.lastObjectId, obj)
     return [undefined, this.lastObjectId]
   }
 
-  private async invokeMethod(objectId: number, name: string, args: unknown[] = []) {
+  private async getInstanceProperty(objectId: number, name: string) {
+    const obj = this.objects.get(objectId) as object
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
+
+    let result, error
+    try {
+      result = Reflect.get(obj, name)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async setInstanceProperty(objectId: number, name: string, value: unknown) {
+    const obj = this.objects.get(objectId) as object
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
+
+    let result, error
+    try {
+      result = Reflect.set(obj, name, value)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async invokeInstanceMethod(objectId: number, name: string, args: unknown[] = []) {
     const obj = this.objects.get(objectId) as object
     if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
 

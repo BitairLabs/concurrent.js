@@ -1,7 +1,7 @@
 import { ThreadedObject } from './threaded_object.js'
 import { isFunction } from './utils.js'
 
-import type { Constructor, Dict } from './types.js'
+import type { Dict } from './types.js'
 import type { ExecutionSettings } from '../index.d.js'
 import type { ThreadPool } from './thread_pool.js'
 import { ThreadedFunction } from './threaded_function.js'
@@ -14,11 +14,21 @@ export class ModuleLoader {
 
     const proxy: Dict<unknown> = {}
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const _this = this
     for (const exportName in exports) {
       if (Object.prototype.hasOwnProperty.call(exports, exportName)) {
         const _export = exports[exportName]
         if (isFunction(_export)) {
-          proxy[exportName] = this.createProxy(moduleSrc, exportName, _export, execSettings)
+          proxy[exportName] = function ExportProxy(...params: unknown[]) {
+            if (new.target) {
+              const obj = new ThreadedObject(_this.pool, moduleSrc, exportName, _export, params, execSettings)
+              return obj.proxy
+            } else {
+              const fn = new ThreadedFunction(_this.pool, moduleSrc, exportName, execSettings)
+              return fn.proxy.invoke(params)
+            }
+          }
         } else {
           proxy[exportName] = _export
         }
@@ -26,18 +36,5 @@ export class ModuleLoader {
     }
 
     return proxy
-  }
-
-  createProxy(moduleSrc: string, exportName: string, ctor: Constructor, execSettings: ExecutionSettings) {
-    const pool = this.pool
-    return function ExportProxy(...params: unknown[]) {
-      if (new.target) {
-        const obj = new ThreadedObject(pool, moduleSrc, exportName, ctor, params, execSettings)
-        return obj.proxy
-      } else {
-        const fn = new ThreadedFunction(pool, moduleSrc, exportName, execSettings)
-        return fn.proxy.invoke(params)
-      }
-    }
   }
 }

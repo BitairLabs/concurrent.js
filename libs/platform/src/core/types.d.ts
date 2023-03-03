@@ -13,8 +13,10 @@ export declare type ThreadMessage = [type: number, data: unknown]
 export declare type TaskInfo = [coroutineId: number, type: number, data: unknown[]]
 export declare type TaskResult = [coroutineId: number, error: Error | undefined, result: unknown | undefined]
 
-export declare type InstantiateObjectData = [moduleSrc: string, ctorName: string, ctorArgs: unknown[]]
-export declare type InvokeMethodData = [objectId: number, methodName: string, args: unknown[]]
+export declare type InstantiateObjectData = [moduleSrc: string, exportName: string, ctorArgs: unknown[]]
+export declare type GetInstancePropertyData = [objectId: number, propName: string]
+export declare type SetInstancePropertyData = [objectId: number, propName: string, value: unknown]
+export declare type InvokeInstanceMethodData = [objectId: number, methodName: string, args: unknown[]]
 export declare type DisposeObjectData = [objectId: number]
 export declare type InvokeFunctionData = [moduleSrc: string, functionName: string, args: unknown[]]
 export declare type DoneCallBack = (error: Error | undefined, result: unknown) => void

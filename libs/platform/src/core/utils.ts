@@ -11,6 +11,14 @@ export function isFunction(val: unknown) {
   return typeof val === 'function'
 }
 
+export function isString(val: unknown) {
+  return typeof val === 'string'
+}
+
+export function isSymbol(val: unknown) {
+  return typeof val === 'symbol'
+}
+
 export function format(str: string, ...params: unknown[]) {
   for (let i = 1; i <= params.length; i++) {
     str = str.replace(`%{${i}}`, () => params[i] as string)

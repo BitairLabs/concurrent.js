@@ -6,7 +6,7 @@ import type { ThreadPool } from './thread_pool.js'
 import type { FunctionProxy } from './types.js'
 
 export class ThreadedFunction {
-  private _thread?: Thread
+  private thread?: Thread
   proxy: FunctionProxy
 
   constructor(
@@ -24,18 +24,12 @@ export class ThreadedFunction {
     }
   }
 
-  private async thread(): Promise<Thread> {
-    if (!this._thread) {
-      const thread = await this.pool.getThread(this.execSettings.parallel)
-      this._thread = thread
-    }
-
-    return this._thread
-  }
-
   private async invoke(args: unknown[]) {
-    const thread = await this.thread()
+    if (!this.thread) {
+      const thread = await this.pool.getThread(this.execSettings.parallel)
+      this.thread = thread
+    }
     const task = Task.invokeFunction(this.moduleSrc, this.exportName, args)
-    return await thread.run(task)
+    return await this.thread.run(task)
   }
 }
