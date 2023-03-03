@@ -1,4 +1,4 @@
-import concurrent from '@bitair/concurrent.js'
+import { concurrent } from '@bitair/concurrent.js'
 import { expect } from 'chai'
 
 import type * as MathModule from 'extra-bigint'

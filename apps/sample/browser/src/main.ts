@@ -1,4 +1,4 @@
-import concurrent from '@bitair/concurrent.js'
+import { concurrent } from '@bitair/concurrent.js'
 
 import type * as Services from './services/index.js'
 

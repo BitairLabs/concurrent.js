@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "command": "pnpm test:platform",
+      "name": "Test Platform",
+      "request": "launch",
+      "type": "node-terminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

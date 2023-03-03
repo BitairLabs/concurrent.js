@@ -2,8 +2,9 @@ import { ModuleLoader } from './module_loader.js'
 import { ThreadPool } from './thread_pool.js'
 import { getBoolean, getNumber } from './utils.js'
 
-import type { ConcurrencySettings, ExecutionSettings, IConcurrent } from '../index.d.js'
+import type { ConcurrencySettings, ExecutionSettings, IAsyncSetter, IConcurrent } from '../index.d.js'
 import type { IWorkerFactory } from './types.js'
+import { SYMBOL } from './constants.js'
 
 export class Master implements IConcurrent {
   private settings: ConcurrencySettings
@@ -19,6 +20,10 @@ export class Master implements IConcurrent {
       threadAllocationTimeout: Infinity,
       threadIdleTimeout: Infinity
     }
+  }
+
+  set(setter: unknown): Promise<void> {
+    return (setter as IAsyncSetter).wait()
   }
 
   config(settings: Partial<ConcurrencySettings>): void {
@@ -72,8 +77,9 @@ export class Master implements IConcurrent {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async dispose(obj: any) {
-    if (this.started && obj.dispose) {
-      await obj.dispose()
+    const dispose = Reflect.get(obj, SYMBOL.DISPOSE)
+    if (this.started && dispose) {
+      await dispose()
     }
   }
 }

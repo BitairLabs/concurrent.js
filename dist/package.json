@@ -1,8 +1,8 @@
 {
   "type": "module",
   "name": "@bitair/concurrent.js",
-  "version": "0.5.7",
-  "description": "Non-blocking Computation for JavaScript (Node.js, Deno & Browsers)",
+  "version": "0.5.8",
+  "description": "Easy Multithreading for JavaScript (Node.js, Deno & Browser)",
   "main": "src/node/index.js",
   "browser": "src/browser/index.js",
   "types": "src/index.d.ts",
