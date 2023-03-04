@@ -11,9 +11,18 @@ export declare interface IWorker {
 export declare type ThreadMessage = [type: number, data: unknown]
 
 export declare type TaskInfo = [coroutineId: number, type: number, data: unknown[]]
-export declare type TaskResult = [coroutineId: number, error: Error | undefined, result: unknown | undefined]
+export declare type TaskResult = [
+  coroutineId: number,
+  error: IConcurrencyError | Error | undefined,
+  result: unknown | undefined
+]
+export declare interface IConcurrencyError {
+  code: number
+  message: string
+}
 
 export declare type InstantiateObjectData = [moduleSrc: string, exportName: string, ctorArgs: unknown[]]
+export declare type InstantiateObjectResult = [id: number, propertyTypeMap: Dict<number>]
 export declare type GetInstancePropertyData = [objectId: number, propName: string]
 export declare type SetInstancePropertyData = [objectId: number, propName: string, value: unknown]
 export declare type InvokeInstanceMethodData = [objectId: number, methodName: string, args: unknown[]]

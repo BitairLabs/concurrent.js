@@ -63,7 +63,7 @@ export class Thread {
       const [coroutineId, error, result] = data as TaskResult
       const coroutine = this.coroutines.get(coroutineId)
       if (!coroutine) throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId)
-      coroutine.done(error, result)
+      coroutine.done(error as Error, result)
     } else {
       throw new ConcurrencyError(ErrorMessage.InvalidMessageType, type)
     }

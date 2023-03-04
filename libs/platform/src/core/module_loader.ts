@@ -22,8 +22,8 @@ export class ModuleLoader {
         if (isFunction(_export)) {
           proxy[exportName] = function ExportProxy(...params: unknown[]) {
             if (new.target) {
-              const obj = new ThreadedObject(_this.pool, moduleSrc, exportName, _export, params, execSettings)
-              return obj.proxy
+              const obj = new ThreadedObject(_this.pool )
+              return obj.init(moduleSrc, exportName, params, execSettings)
             } else {
               const fn = new ThreadedFunction(_this.pool, moduleSrc, exportName, execSettings)
               return fn.proxy.invoke(params)

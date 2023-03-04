@@ -1,7 +1,14 @@
-import { ErrorMessage, TaskType, ThreadMessageType } from './constants.js'
+import { ErrorMessage, TaskType, ThreadMessageType, ValueType } from './constants.js'
 import { ConcurrencyError } from './error.js'
 
-import type { Constructor, GetInstancePropertyData, InvokeFunctionData, SetInstancePropertyData } from './types.js'
+import type {
+  Constructor,
+  Dict,
+  GetInstancePropertyData,
+  InstantiateObjectResult,
+  InvokeFunctionData,
+  SetInstancePropertyData
+} from './types.js'
 
 import type {
   ThreadMessage,
@@ -11,6 +18,7 @@ import type {
   InvokeInstanceMethodData,
   DisposeObjectData
 } from './types.js'
+import { isFunction, isSymbol } from './utils.js'
 
 export class WorkerManager {
   objects: Map<number, unknown> = new Map()
@@ -46,7 +54,14 @@ export class WorkerManager {
         }
         message = [ThreadMessageType.ReadTaskResult, [coroutineId, error, result] as TaskResult]
       } catch (error) {
-        message = [ThreadMessageType.ReadTaskResult, [coroutineId, error, undefined] as TaskResult]
+        message = [
+          ThreadMessageType.ReadTaskResult,
+          [
+            coroutineId,
+            { message: (error as ConcurrencyError).message, code: (error as ConcurrencyError).code },
+            undefined
+          ] as TaskResult
+        ]
       }
       return message
     } else {
@@ -60,7 +75,8 @@ export class WorkerManager {
     const obj = new ctor(...ctorArgs)
     this.lastObjectId += 1
     this.objects.set(this.lastObjectId, obj)
-    return [undefined, this.lastObjectId]
+    const result = [this.lastObjectId, getPropertyTypeMap(obj)] as InstantiateObjectResult
+    return [undefined, result]
   }
 
   private async getInstanceProperty(objectId: number, name: string) {
@@ -133,4 +149,22 @@ export class WorkerManager {
 
     return [error, result]
   }
+}
+
+function getPropertyTypeMap(obj: unknown) {
+  const map: Dict<number> = {}
+  while (obj) {
+    const keys = Reflect.ownKeys(obj)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i] as never
+      if (!isSymbol(key)) {
+        if (!map[key]) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(obj, key) as PropertyDescriptor
+          map[key] = isFunction(descriptor.value) ? ValueType.Function : ValueType.Any
+        }
+      }
+    }
+    obj = Reflect.getPrototypeOf(obj)
+  }
+  return map
 }

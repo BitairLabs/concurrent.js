@@ -1,4 +1,4 @@
-import { concurrent } from '../../../../dist/mod.ts'
+import { concurrent } from '../../../../mod.ts'
 
 const { factorial } = await concurrent.load(new URL('./services/index.ts', import.meta.url))
 

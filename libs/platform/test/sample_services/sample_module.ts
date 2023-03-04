@@ -3,15 +3,43 @@ import { isMainThread } from 'node:worker_threads'
 import { isPrime } from './math.js'
 
 class BaseClass {
-  _version = '1.0.0'
-  get version() {
-    return this._version
+  constructor(public _baseData?: number[]) {}
+
+  set baseData(value) {
+    this._baseData = value
   }
-  set version(value) {
-    this._version = value
+
+  get baseData() {
+    return this._baseData
   }
-  getVersion() {
-    return this.version
+
+  setBaseData(value: number[]) {
+    return (this._baseData = value)
+  }
+  
+  getBaseData() {
+    return this._baseData
+  }
+
+  overridableGetBaseData() {
+    return this.baseData
+  }
+
+  async setBaseDataAsync(value: number[]) {
+    new Promise(resolve => {
+      setTimeout(() => {
+        this.baseData = value
+        resolve(true)
+      })
+    })
+  }
+
+  async getBaseDataAsync() {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(this.baseData)
+      })
+    })
   }
 }
 
@@ -19,7 +47,7 @@ export class SampleObject extends BaseClass {
   public isWorker = !isMainThread
 
   constructor(public _data?: number[]) {
-    super()
+    super(_data)
   }
 
   set data(value) {
@@ -38,13 +66,28 @@ export class SampleObject extends BaseClass {
     return this.data
   }
 
-  async echoAsync(text: string) {
-    return await new Promise(resolve => {
+  override overridableGetBaseData() {
+    return this.data
+  }
+
+  async setDataAsync(value: number[]) {
+    new Promise(resolve => {
       setTimeout(() => {
-        resolve(text)
+        this.data = value
+        resolve(true)
       })
     })
   }
+
+  async getDataAsync() {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(this.data)
+      })
+    })
+  }
+
+
 
   isPrime(x: number) {
     return isPrime(x)
