@@ -43,8 +43,7 @@ describe('Testing Master', () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     expect(await obj._data).to.be.deep.equal([])
-    obj._data = [1]
-    expect(await obj._data).to.be.deep.equal([1])
+    expect(await ((obj._data = [1]), obj._data)).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
 
@@ -52,8 +51,7 @@ describe('Testing Master', () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     expect(await obj._baseData).to.be.deep.equal([])
-    obj._baseData = [1]
-    expect(await obj._baseData).to.be.deep.equal([1])
+    expect(await ((obj._baseData = [1]), obj._baseData)).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
 
@@ -74,8 +72,7 @@ describe('Testing Master', () => {
   it('should access an instance setter', async () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    obj.data = [1]
-    await obj.data
+    await ((obj.data = [1]), obj.data)
     expect(await obj._data).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
@@ -83,8 +80,7 @@ describe('Testing Master', () => {
   it('should access a prototype setter', async () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    obj.baseData = [1]
-    await obj.baseData
+    await ((obj.baseData = [1]), obj.baseData)
     expect(await obj._baseData).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
@@ -102,9 +98,9 @@ describe('Testing Master', () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     try {
-      expect(await Reflect.get(obj, 'getData2')()).to.be.deep.equal([])     
+      expect(await Reflect.get(obj, 'getData2')()).to.be.deep.equal([])
     } catch (error) {
-      expect((error as Error) instanceof TypeError).to.be.true     
+      expect((error as Error) instanceof TypeError).to.be.true
     }
     await concurrent.dispose(obj)
   })
