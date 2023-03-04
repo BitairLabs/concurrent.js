@@ -1,5 +1,5 @@
 import { DenoWorker } from './worker.js'
-import { AsyncSetter, Master } from '../core/index.js'
+import { Master } from '../core/index.js'
 
 const concurrent = new Master({
   create: () => {
@@ -8,6 +8,4 @@ const concurrent = new Master({
   }
 })
 
-const setAsync = AsyncSetter.create
-
-export { concurrent, setAsync as AsyncSetter }
+export { concurrent }

@@ -1,10 +1,10 @@
 export enum ThreadMessageType {
-  RunTask,
+  RunTask = 1,
   ReadTaskResult
 }
 
 export enum TaskType {
-  InstantiateObject,
+  InstantiateObject = 1,
   GetInstanceProperty,
   SetInstanceProperty,
   InvokeInstanceMethod,
@@ -20,8 +20,12 @@ export const ErrorMessage = {
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: 'This module must be run on a worker.' },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: 'Thread allocation failed due to timeout.' },
-  AsyncSetterRequired: { code: 510, text: 'Value must be an instance of AsyncSetter.' }
+  ThreadAllocationTimeout: { code: 509, text: 'Thread allocation failed due to timeout.' }
+}
+
+export enum ValueType {
+  Function = 1,
+  Any
 }
 
 export const SYMBOL = {
