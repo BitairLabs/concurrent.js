@@ -1,6 +1,6 @@
 # Intro
 
-At the highest level of its design, Concurrent.js is a module loader like require and import. But instead of loading a module into the main thread, it loads the module into workers. Concurrent.js provides a simple "write less, do more" isomorphic API that works on Node.js, Deno, and browsers.
+At the highest level of its design, Concurrent.js is a module loader like `require` and `import`. But instead of loading a module into the main thread, it loads the module into workers. Concurrent.js provides a simple "write less, do more" isomorphic API that works on Node.js, Deno, and browsers.
 
 Concurrent.js injects the concurrent behavior into the imported classes and functions so they can be used as usual. Because of that, any type mismatch would be detected by TypeScript on compile time. This is perhaps the main advantage of Concurrent.js over similar libraries.
 
@@ -24,6 +24,9 @@ Important notes
     - [x] Getters and setters
     - [x] Fields
     - [x] Methods
+          [ ] Async
+          [ ] Generator
+          [ ] Chain
   - [ ] Static members
     - [ ] Methods
     - [ ] Getters and setters
@@ -52,11 +55,7 @@ Important notes
 - Automatically creates and terminates workers (scale up/down).
 - Packaged as platform-specific bundles that target ES2020.
 
-# Install
-
-```bash
-npm i @bitair/concurrent.js@latest
-```
+# Hello World!
 
 Save and run the [hello world](./scripts/hello_world.sh) script to see it in action:
 
@@ -68,13 +67,13 @@ bash hello_world.sh
 
 ```ts
 import { concurrent, AsyncSetter } from '@bitair/concurrent.js'
-import type * as SampleModule from 'module-path'
+import type * as SampleModule from 'sample-module-path'
 
 // import
 const { SampleObject, sampleFunction } = await concurrent.load<typeof SampleModule>('sample-module-path')
 
 // instantiate
-const obj = new SampleObject(1, 'arg2', { arg3_1: false }) // strongly-typed, any type mismatch would be detected.
+const obj = await new SampleObject(1, 'arg2', { arg3_1: false }) // strongly-typed, any type mismatch would be detected.
 
 // call a method
 const result = await obj.sampleMethod(1, 'arg2', [1, 2, 3]) // strongly-typed
@@ -83,7 +82,8 @@ const result = await obj.sampleMethod(1, 'arg2', [1, 2, 3]) // strongly-typed
 const value = await obj.sampleProp
 
 // write a field or setter
-await concurrent.set((obj.sampleProp = AsyncSetter(1))) // strongly-typed
+obj.sampleProp = 1 // strongly-typed
+await obj.sampleProp
 
 // call a function
 const result2 = await sampleFunction(1, 'arg2', [1, 2, 3]) // strongly-typed
@@ -92,6 +92,10 @@ const result2 = await sampleFunction(1, 'arg2', [1, 2, 3]) // strongly-typed
 ## Sample
 
 ### Node.js (ECMAScript)
+
+```bash
+npm i @bitair/concurrent.js@latest
+```
 
 `index.js`
 
@@ -124,7 +128,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.8/dist/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.9/mod.ts'
 const { factorial } = await concurrent.load(new URL('services/index.ts', import.meta.url))
 const result = await factorial(50n)
 console.log(result)
@@ -230,7 +234,7 @@ bash ./build.sh && npx http-server static
 
 #### Base URL
 
-Concurrent.js uses the import.meta.url property as the base URL to resolve the scripts. It's also possible to provide a custom base URL:
+Concurrent.js uses the `import.meta.url` property as the base URL to resolve the scripts. It's also possible to provide a custom base URL:
 
 ```bash
 npx esbuild src/app.js --target=es6 --define:process.env.BASE_URL=\"http://127.0.0.1:8080/scripts/\" --bundle --format=esm --platform=browser --outfile=static/scripts/main.js
@@ -265,9 +269,9 @@ In parallelism, instances must be explicitly disposed:
 ```js
 const ops = []
 for (let i = 0; i <= 100; i++) {
-  const instance = SampleObject()
-  const op = instance.sampleMethod().then((result) => {
-    await concurrent.dispose(instance)
+  const obj = await new SampleObject()
+  const op = obj.sampleMethod().then((result) => {
+    await concurrent.dispose(obj)
     return result
   })
   ops.push(op)

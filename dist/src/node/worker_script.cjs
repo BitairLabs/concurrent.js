@@ -11,20 +11,21 @@ __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
   SYMBOL: () => SYMBOL,
   TaskType: () => TaskType,
-  ThreadMessageType: () => ThreadMessageType
+  ThreadMessageType: () => ThreadMessageType,
+  ValueType: () => ValueType
 });
 var ThreadMessageType = /* @__PURE__ */ ((ThreadMessageType2) => {
-  ThreadMessageType2[ThreadMessageType2["RunTask"] = 0] = "RunTask";
-  ThreadMessageType2[ThreadMessageType2["ReadTaskResult"] = 1] = "ReadTaskResult";
+  ThreadMessageType2[ThreadMessageType2["RunTask"] = 1] = "RunTask";
+  ThreadMessageType2[ThreadMessageType2["ReadTaskResult"] = 2] = "ReadTaskResult";
   return ThreadMessageType2;
 })(ThreadMessageType || {});
 var TaskType = /* @__PURE__ */ ((TaskType2) => {
-  TaskType2[TaskType2["InstantiateObject"] = 0] = "InstantiateObject";
-  TaskType2[TaskType2["GetInstanceProperty"] = 1] = "GetInstanceProperty";
-  TaskType2[TaskType2["SetInstanceProperty"] = 2] = "SetInstanceProperty";
-  TaskType2[TaskType2["InvokeInstanceMethod"] = 3] = "InvokeInstanceMethod";
-  TaskType2[TaskType2["DisposeObject"] = 4] = "DisposeObject";
-  TaskType2[TaskType2["InvokeFunction"] = 5] = "InvokeFunction";
+  TaskType2[TaskType2["InstantiateObject"] = 1] = "InstantiateObject";
+  TaskType2[TaskType2["GetInstanceProperty"] = 2] = "GetInstanceProperty";
+  TaskType2[TaskType2["SetInstanceProperty"] = 3] = "SetInstanceProperty";
+  TaskType2[TaskType2["InvokeInstanceMethod"] = 4] = "InvokeInstanceMethod";
+  TaskType2[TaskType2["DisposeObject"] = 5] = "DisposeObject";
+  TaskType2[TaskType2["InvokeFunction"] = 6] = "InvokeFunction";
   return TaskType2;
 })(TaskType || {});
 var ErrorMessage = {
@@ -35,17 +36,27 @@ var ErrorMessage = {
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." },
-  AsyncSetterRequired: { code: 510, text: "Value must be an instance of AsyncSetter." }
+  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." }
 };
+var ValueType = /* @__PURE__ */ ((ValueType2) => {
+  ValueType2[ValueType2["Function"] = 1] = "Function";
+  ValueType2[ValueType2["Any"] = 2] = "Any";
+  return ValueType2;
+})(ValueType || {});
 var SYMBOL = {
   DISPOSE: Symbol("DISPOSE")
 };
 
 // libs/platform/src/core/utils.ts
-function format(str, ...params) {
-  for (let i = 1; i <= params.length; i++) {
-    str = str.replace(`%{${i}}`, () => params[i]);
+function isFunction(val) {
+  return typeof val === "function";
+}
+function isSymbol(val) {
+  return typeof val === "symbol";
+}
+function format(str, args) {
+  for (let i = 0; i < args.length; i++) {
+    str = str.replace(`%{${i + 1}}`, args[i]);
   }
   return str;
 }
@@ -54,7 +65,8 @@ function format(str, ...params) {
 var ConcurrencyError = class extends Error {
   code;
   constructor({ code, text }, ...params) {
-    super(format(`Concurrent.js Error: ${text}`, ...params));
+    const message = format(`Concurrent.js Error: ${text}`, params);
+    super(message);
     this.code = code;
   }
 };
@@ -64,42 +76,49 @@ var WorkerManager = class {
   objects = /* @__PURE__ */ new Map();
   lastObjectId = 0;
   async handleMessage(type, data) {
-    if (type == 0 /* RunTask */) {
+    if (type == 1 /* RunTask */) {
       const [coroutineId, taskType, taskData] = data;
       let message;
       try {
         let error, result;
         switch (taskType) {
-          case 0 /* InstantiateObject */:
+          case 1 /* InstantiateObject */:
             ;
             [error, result] = await this.instantiateObject(...taskData);
             break;
-          case 1 /* GetInstanceProperty */:
+          case 2 /* GetInstanceProperty */:
             ;
             [error, result] = await this.getInstanceProperty(...taskData);
             break;
-          case 2 /* SetInstanceProperty */:
+          case 3 /* SetInstanceProperty */:
             ;
             [error, result] = await this.setInstanceProperty(...taskData);
             break;
-          case 3 /* InvokeInstanceMethod */:
+          case 4 /* InvokeInstanceMethod */:
             ;
             [error, result] = await this.invokeInstanceMethod(...taskData);
             break;
-          case 4 /* DisposeObject */:
+          case 5 /* DisposeObject */:
             ;
             [error, result] = this.disposeObject(...taskData);
             break;
-          case 5 /* InvokeFunction */:
+          case 6 /* InvokeFunction */:
             ;
             [error, result] = await this.invokeFunction(...taskData);
             break;
           default:
             throw new ConcurrencyError(ErrorMessage.InvalidTaskType, taskType);
         }
-        message = [1 /* ReadTaskResult */, [coroutineId, error, result]];
+        message = [2 /* ReadTaskResult */, [coroutineId, error, result]];
       } catch (error) {
-        message = [1 /* ReadTaskResult */, [coroutineId, error, void 0]];
+        message = [
+          2 /* ReadTaskResult */,
+          [
+            coroutineId,
+            { message: error.message, code: error.code },
+            void 0
+          ]
+        ];
       }
       return message;
     } else {
@@ -112,7 +131,8 @@ var WorkerManager = class {
     const obj = new ctor(...ctorArgs);
     this.lastObjectId += 1;
     this.objects.set(this.lastObjectId, obj);
-    return [void 0, this.lastObjectId];
+    const result = [this.lastObjectId, getPropertyTypeMap(obj)];
+    return [void 0, result];
   }
   async getInstanceProperty(objectId, name) {
     const obj = this.objects.get(objectId);
@@ -175,6 +195,23 @@ var WorkerManager = class {
     return [error, result];
   }
 };
+function getPropertyTypeMap(obj) {
+  const map = {};
+  while (obj) {
+    const keys = Reflect.ownKeys(obj);
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (!isSymbol(key)) {
+        if (!map[key]) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(obj, key);
+          map[key] = isFunction(descriptor.value) ? 1 /* Function */ : 2 /* Any */;
+        }
+      }
+    }
+    obj = Reflect.getPrototypeOf(obj);
+  }
+  return map;
+}
 
 // libs/platform/src/node/worker_script.ts
 var import_node_worker_threads = require("node:worker_threads");

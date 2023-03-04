@@ -3,6 +3,10 @@
 - Add unit testing to the browser sample project.
 - Implement web API for setting the disable flag.
 
+## v0.5.9
+
+- Syntax of setting a field/setter is improved.
+
 ## v0.5.8
 
 - Accessing instance fields, getters and setters are implemented.

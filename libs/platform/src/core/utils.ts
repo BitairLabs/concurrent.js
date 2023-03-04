@@ -19,9 +19,9 @@ export function isSymbol(val: unknown) {
   return typeof val === 'symbol'
 }
 
-export function format(str: string, ...params: unknown[]) {
-  for (let i = 1; i <= params.length; i++) {
-    str = str.replace(`%{${i}}`, () => params[i] as string)
+export function format(str: string, args: unknown[]) {
+  for (let i = 0; i < args.length; i++) {
+    str = str.replace(`%{${i + 1}}`, args[i] as string)
   }
   return str
 }
