@@ -1,3 +1,7 @@
+## v0.5.10
+
+- Module loader is improved.
+
 ## v0.5.9
 
 - Syntax of setting a field/setter is improved.

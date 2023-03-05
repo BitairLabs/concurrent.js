@@ -36,7 +36,3 @@ export declare type WorkerErrorHandler = (error: Error) => void
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export declare type Constructor = new (...params: any[]) => {}
 export declare type Dict<T> = { [key: string]: T | undefined }
-
-export declare type FunctionProxy = {
-  invoke: (args: unknown[]) => Promise<unknown>
-}

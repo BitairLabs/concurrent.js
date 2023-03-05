@@ -1,5 +1,6 @@
 import { assert, expect } from 'chai'
 import { cpus } from 'node:os'
+import { ErrorMessage } from '../src/core/constants.js'
 import type { ConcurrencyError } from '../src/core/error.js'
 import { Constants } from '../src/core/index.js'
 
@@ -82,6 +83,17 @@ describe('Testing Master', () => {
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     await ((obj.baseData = [1]), obj.baseData)
     expect(await obj._baseData).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should throw an exception when assigning a method', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    try {
+      await ((obj.setData = () => undefined), obj.setData)
+    } catch (error) {
+      expect((error as ConcurrencyError).code).to.be.equal(ErrorMessage.MethodAssignment.code)
+    }
     await concurrent.dispose(obj)
   })
 
