@@ -16,7 +16,7 @@ class BaseClass {
   setBaseData(value: number[]) {
     return (this._baseData = value)
   }
-  
+
   getBaseData() {
     return this._baseData
   }
@@ -86,8 +86,6 @@ export class SampleObject extends BaseClass {
       })
     })
   }
-
-
 
   isPrime(x: number) {
     return isPrime(x)
