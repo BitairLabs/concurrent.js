@@ -36,11 +36,13 @@ var ErrorMessage = {
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." }
+  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." },
+  MethodAssignment: { code: 509, text: "Can't assign a method." }
 };
 var ValueType = /* @__PURE__ */ ((ValueType2) => {
   ValueType2[ValueType2["Function"] = 1] = "Function";
-  ValueType2[ValueType2["Any"] = 2] = "Any";
+  ValueType2[ValueType2["Symbol"] = 2] = "Symbol";
+  ValueType2[ValueType2["Any"] = 3] = "Any";
   return ValueType2;
 })(ValueType || {});
 var SYMBOL = {
@@ -204,7 +206,7 @@ function getPropertyTypeMap(obj) {
       if (!isSymbol(key)) {
         if (!map[key]) {
           const descriptor = Reflect.getOwnPropertyDescriptor(obj, key);
-          map[key] = isFunction(descriptor.value) ? 1 /* Function */ : 2 /* Any */;
+          map[key] = isFunction(descriptor.value) ? 1 /* Function */ : 3 /* Any */;
         }
       }
     }

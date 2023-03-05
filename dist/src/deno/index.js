@@ -44,19 +44,14 @@ var ErrorMessage = {
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." }
+  ThreadAllocationTimeout: { code: 509, text: "Thread allocation failed due to timeout." },
+  MethodAssignment: { code: 509, text: "Can't assign a method." }
 };
 var SYMBOL = {
   DISPOSE: Symbol("DISPOSE")
 };
 
 // libs/platform/src/core/utils.ts
-function isFunction(val) {
-  return typeof val === "function";
-}
-function isSymbol(val) {
-  return typeof val === "symbol";
-}
 function format(str, args) {
   for (let i = 0; i < args.length; i++) {
     str = str.replace(`%{${i + 1}}`, args[i]);
@@ -115,111 +110,54 @@ var Task = class {
   }
 };
 
+// libs/platform/src/core/threaded_function.ts
+var ThreadedFunction = class {
+  constructor(moduleSrc, exportName, thread) {
+    this.moduleSrc = moduleSrc;
+    this.exportName = exportName;
+    this.thread = thread;
+  }
+  static async create(pool, moduleSrc, exportName, execSettings) {
+    const thread = await pool.getThread(execSettings.parallel);
+    return new ThreadedFunction(moduleSrc, exportName, thread);
+  }
+  async invoke(args) {
+    const task = Task.invokeFunction(this.moduleSrc, this.exportName, args);
+    return this.thread.run(task);
+  }
+};
+
 // libs/platform/src/core/threaded_object.ts
 var ThreadedObject = class {
-  constructor(pool) {
+  constructor(pool, thread, id, propertyMap) {
     this.pool = pool;
-  }
-  thread;
-  id;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  proxy = {};
-  async init(moduleSrc, exportName, ctorArgs, execSettings) {
-    this.thread = await this.pool.getThread(execSettings.parallel);
-    const task = Task.instantiateObject(moduleSrc, exportName, ctorArgs);
-    const [id, propertyTypeMap] = await this.thread.run(task);
+    this.thread = thread;
     this.id = id;
-    this.pool.registerObject(this, this.id, this.thread);
-    const _this = this;
-    return new Proxy(createShadowObject(propertyTypeMap), {
-      get(target, key) {
-        if (key === SYMBOL.DISPOSE)
-          return _this.dispose.bind(_this);
-        if (isSymbol(key))
-          return void 0;
-        const prop = Reflect.get(target, key);
-        if (!isFunction(prop)) {
-          if (prop instanceof Promise)
-            return prop;
-          return _this.getProperty.call(_this, key);
-        } else {
-          return (...params) => _this.invoke.call(_this, key, params);
-        }
-      },
-      set(target, key, value) {
-        if (isSymbol(key))
-          return false;
-        const setter = new Promise((resolve, reject) => {
-          _this.setProperty.call(_this, key, value).then(() => {
-            Reflect.set(target, key, void 0);
-            resolve(value);
-          }).catch((error) => reject(error));
-        });
-        Reflect.set(target, key, setter);
-        return true;
-      }
-    });
+    this.propertyMap = propertyMap;
   }
-  async getProperty(methodName) {
-    const thread = this.thread;
-    const task = Task.getInstanceProperty(this.id, methodName);
-    return await thread.run(task);
+  static async create(pool, moduleSrc, exportName, ctorArgs, execSettings) {
+    const thread = await pool.getThread(execSettings.parallel);
+    const task = Task.instantiateObject(moduleSrc, exportName, ctorArgs);
+    const [id, propertyMap] = await thread.run(task);
+    const obj = new ThreadedObject(pool, thread, id, propertyMap);
+    pool.registerObject(obj, id, thread);
+    return obj;
   }
-  async setProperty(methodName, value) {
-    const thread = this.thread;
-    const task = Task.setInstanceProperty(this.id, methodName, value);
-    return await thread.run(task);
+  async getProperty(propName) {
+    const task = Task.getInstanceProperty(this.id, propName);
+    return await this.thread.run(task);
+  }
+  async setProperty(propName, value) {
+    const task = Task.setInstanceProperty(this.id, propName, value);
+    return await this.thread.run(task);
   }
   async invoke(methodName, args) {
-    const thread = this.thread;
     const task = Task.invokeInstanceMethod(this.id, methodName, args);
-    return await thread.run(task);
+    return await this.thread.run(task);
   }
   async dispose() {
     this.pool.unregisterObject(this);
     this.pool.disposeObject(this.id, this.thread);
-  }
-};
-function createShadowObject(propertyTypeMap) {
-  const obj = {};
-  for (const key in propertyTypeMap) {
-    if (Object.prototype.hasOwnProperty.call(propertyTypeMap, key)) {
-      const propType = propertyTypeMap[key];
-      const descriptor = {};
-      if (propType === 1 /* Function */)
-        descriptor.value = () => void 0;
-      else
-        descriptor.writable = true;
-      descriptor.configurable = true;
-      Object.defineProperty(obj, key, descriptor);
-    }
-  }
-  return obj;
-}
-
-// libs/platform/src/core/threaded_function.ts
-var ThreadedFunction = class {
-  constructor(pool, moduleSrc, exportName, execSettings) {
-    this.pool = pool;
-    this.moduleSrc = moduleSrc;
-    this.exportName = exportName;
-    this.execSettings = execSettings;
-    const _this = this;
-    this.proxy = {
-      async invoke(args) {
-        return _this.invoke.call(_this, args);
-      }
-    };
-  }
-  thread;
-  proxy;
-  async invoke(args) {
-    if (!this.thread) {
-      const thread = await this.pool.getThread(this.execSettings.parallel);
-      this.thread = thread;
-    }
-    const task = Task.invokeFunction(this.moduleSrc, this.exportName, args);
-    return await this.thread.run(task);
   }
 };
 
@@ -230,29 +168,63 @@ var ModuleLoader = class {
   }
   async load(moduleSrc, execSettings) {
     const exports = await import(moduleSrc);
-    const proxy = {};
-    const _this = this;
-    for (const exportName in exports) {
-      if (Object.prototype.hasOwnProperty.call(exports, exportName)) {
-        const _export = exports[exportName];
-        if (isFunction(_export)) {
-          proxy[exportName] = function ExportProxy(...params) {
-            if (new.target) {
-              const obj = new ThreadedObject(_this.pool);
-              return obj.init(moduleSrc, exportName, params, execSettings);
-            } else {
-              const fn = new ThreadedFunction(_this.pool, moduleSrc, exportName, execSettings);
-              return fn.proxy.invoke(params);
+    const pool = this.pool;
+    return new Proxy(exports, {
+      get(target, key) {
+        if (Reflect.has(target, key)) {
+          const _export = Reflect.get(target, key);
+          return new Proxy(_export, {
+            construct(_target, args, newTarget) {
+              return createConstructorProxy(pool, moduleSrc, newTarget.name, args, execSettings);
+            },
+            apply(target2, _thisArg, args) {
+              return createFunctionProxy(pool, moduleSrc, target2.name, args, execSettings);
             }
-          };
+          });
         } else {
-          proxy[exportName] = _export;
+          return Reflect.get(target, key);
         }
       }
-    }
-    return proxy;
+    });
   }
 };
+async function createFunctionProxy(pool, moduleSrc, exportName, args, execSettings) {
+  const fn = await ThreadedFunction.create(pool, moduleSrc, exportName, execSettings);
+  return fn.invoke(args);
+}
+async function createConstructorProxy(pool, moduleSrc, exportName, args, execSettings) {
+  const obj = await ThreadedObject.create(pool, moduleSrc, exportName, args, execSettings);
+  return new Proxy(obj.propertyMap, {
+    get(target, key) {
+      if (key === SYMBOL.DISPOSE)
+        return obj.dispose.bind(obj);
+      if (!Reflect.has(target, key))
+        return void 0;
+      const prop = Reflect.get(target, key);
+      if (prop instanceof Promise)
+        return prop;
+      if (obj.propertyMap[key] === 1 /* Function */) {
+        return (...params) => obj.invoke(key, params);
+      } else {
+        return obj.getProperty(key);
+      }
+    },
+    set(target, key, value) {
+      if (!Reflect.has(target, key))
+        return false;
+      if (obj.propertyMap[key] === 1 /* Function */)
+        throw new ConcurrencyError(ErrorMessage.MethodAssignment);
+      const setter = new Promise((resolve, reject) => {
+        obj.setProperty(key, value).then(() => {
+          Reflect.set(target, key, 3 /* Any */);
+          resolve(value);
+        }).catch((error) => reject(error));
+      });
+      Reflect.set(target, key, setter);
+      return true;
+    }
+  });
+}
 
 // libs/platform/src/core/coroutine.ts
 var _Coroutine = class {

@@ -20,11 +20,13 @@ export const ErrorMessage = {
   ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
   NotRunningOnWorker: { code: 506, text: 'This module must be run on a worker.' },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: 'Thread allocation failed due to timeout.' }
+  ThreadAllocationTimeout: { code: 509, text: 'Thread allocation failed due to timeout.' },
+  MethodAssignment: { code: 509, text: "Can't assign a method." }
 }
 
 export enum ValueType {
   Function = 1,
+  Symbol = 2,
   Any
 }
 

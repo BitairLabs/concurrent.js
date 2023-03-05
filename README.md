@@ -39,15 +39,13 @@ Important notes
 
 # Technical facts
 
-- Has no runtime dependency.
-- Built with Node.js and uses the ECMAScript module system.
-- Alters nothing, no native nor programmer-defined.
-- Written in TypeScript with the strictest ESNext config.
-- Provides a strongly-typed syntax.
 - Built upon web workers (a.k.a. worker threads).
 - Creates a worker once and reuses it.
 - Automatically cleans up a worker's memory.
-- Automatically creates and terminates workers (scale up/down).
+- Automatically creates and terminates workers.
+- Has no runtime dependency.
+- Written in TypeScript with the strictest ESNext config.
+- Strictly designed to support strongly-typed programming.
 - Packaged as platform-specific bundles that target ES2020.
 
 # Hello World!
@@ -68,19 +66,19 @@ import type * as SampleModule from 'sample-module-path'
 const { SampleObject, sampleFunction } = await concurrent.load<typeof SampleModule>('sample-module-path')
 
 // instantiate
-const obj = await new SampleObject(1, 'arg2', { arg3_1: false }) // strongly-typed, any type mismatch would be detected.
+const obj = await new SampleObject(1, 'arg2', { arg3_1: false })
 
 // call a method
-const result = await obj.sampleMethod(1, 'arg2', [1, 2, 3]) // strongly-typed
+const result = await obj.sampleMethod(1, 'arg2', [1, 2, 3])
 
 // read a field or getter
 const value = await obj.sampleProp
 
 // write a field or setter
-await (obj.sampleProp = 1, obj.sampleProp) // strongly-typed
+await ((obj.sampleProp = 1), obj.sampleProp)
 
 // call a function
-const result2 = await sampleFunction(1, 'arg2', [1, 2, 3]) // strongly-typed
+const result2 = await sampleFunction(1, 'arg2', [1, 2, 3])
 ```
 
 ## Sample
