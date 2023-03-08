@@ -21,7 +21,7 @@ export function isSymbol(val: unknown) {
 
 export function format(str: string, args: unknown[]) {
   for (let i = 0; i < args.length; i++) {
-    str = str.replace(`%{${i + 1}}`, args[i] as string)
+    str = str.replace(`%{${i}}`, args[i] as string)
   }
   return str
 }
@@ -43,4 +43,23 @@ export function getCollectionItem<T>(index: number, list: Iterable<T>) {
     else i += 1
   }
   return undefined
+}
+
+export function getProperties(obj: unknown) {
+  const map: NodeJS.Dict<string> = {}
+  while (obj) {
+    const keys = Reflect.ownKeys(obj)
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i] as never
+      if (!isSymbol(key)) {
+        if (!map[key]) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(obj, key) as PropertyDescriptor
+          map[key] = typeof descriptor?.value
+        }
+      }
+    }
+    obj = isFunction(obj) ? Reflect.get(obj, '__proto__') : Reflect.getPrototypeOf(obj)
+  }
+
+  return map
 }

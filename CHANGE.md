@@ -1,3 +1,7 @@
+## v0.5.11
+
+- Accessing an exported class is fully implemented.
+
 ## v0.5.10
 
 - Module loader is improved.

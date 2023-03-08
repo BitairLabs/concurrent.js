@@ -4,30 +4,33 @@ export enum ThreadMessageType {
 }
 
 export enum TaskType {
-  InstantiateObject = 1,
+  InvokeFunction = 1,
+  GetStaticProperty,
+  SetStaticProperty,
+  InvokeStaticMethod,
+  InstantiateObject,
   GetInstanceProperty,
   SetInstanceProperty,
   InvokeInstanceMethod,
-  DisposeObject,
-  InvokeFunction
+  DisposeObject
 }
 
 export const ErrorMessage = {
   InternalError: { code: 500, text: 'Internal error has occurred.' },
-  InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{1}'." },
-  InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{1}'" },
-  CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{1}'." },
-  ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{1}'" },
+  InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{0}'." },
+  InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{0}'" },
+  CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{0}'." },
+  ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{0}'" },
   NotRunningOnWorker: { code: 506, text: 'This module must be run on a worker.' },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
-  ThreadAllocationTimeout: { code: 509, text: 'Thread allocation failed due to timeout.' },
-  MethodAssignment: { code: 509, text: "Can't assign a method." }
+  ThreadAllocationTimeout: { code: 508, text: 'Thread allocation failed due to timeout.' },
+  MethodAssignment: { code: 509, text: "Can't assign a method." },
+  NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." }
 }
 
 export enum ValueType {
-  Function = 1,
-  Symbol = 2,
-  Any
+  Function = 'function',
+  Undefined = 'undefined'
 }
 
 export const SYMBOL = {

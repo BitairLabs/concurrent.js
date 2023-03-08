@@ -1,2 +1,3 @@
 export { SampleObject } from './sample_module.js'
-export * as math from './math.js'
+export * from './math.js'
+export * as Math from './math.js'

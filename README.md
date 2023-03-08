@@ -16,16 +16,17 @@ Important notes
 - [ ] Executing TypeScript
 - [ ] Executing WebAssembly
 - [x] Accessing exported functions
-- [ ] Accessing exported classes
+- [x] Accessing exported classes
   - [x] Instantiation
   - [x] Instance members
     - [x] Fields
     - [x] Getters and setters
     - [x] Methods
-  - [ ] Static members
-    - [ ] Fields
-    - [ ] Getters and setters
-    - [ ] Methods
+  - [x] Static members
+    - [x] Fields
+    - [x] Getters and setters
+    - [x] Methods
+- [x] Parallel execution
 - [ ] Reactive concurrency
   - [ ] Inter-worker communication
   - [ ] Event sourcing
@@ -58,27 +59,23 @@ bash hello_world.sh
 
 # Usage
 
-```ts
-import { concurrent } from '@bitair/concurrent.js'
-import type * as SampleModule from 'sample-module-path'
-
+```js
 // import
-const { SampleObject, sampleFunction } = await concurrent.load<typeof SampleModule>('sample-module-path')
+const { SampleObject, sampleFunction } = await concurrent.load('sample-module-path')
 
-// instantiate
-const obj = await new SampleObject(1, 'arg2', { arg3_1: false })
+// access an exported function
+const result = await sampleFunction(/*...args*/) // call the function
 
-// call a method
-const result = await obj.sampleMethod(1, 'arg2', [1, 2, 3])
+// access an exported class
+const obj = await new SampleObject(/*...args*/) // instantiate
+const value = await obj.sampleProp // get a field or getter
+await ((obj.sampleProp = 1), obj.sampleProp) // set a field or setter
+const result = await obj.sampleMethod(/*...args*/) // call a method
 
-// read a field or getter
-const value = await obj.sampleProp
-
-// write a field or setter
-await ((obj.sampleProp = 1), obj.sampleProp)
-
-// call a function
-const result2 = await sampleFunction(1, 'arg2', [1, 2, 3])
+// access static members of an exported class
+const value = await SampleObject.sampleStaticProp // get a static field or getter
+await ((SampleObject.sampleStaticProp = 1), SampleObject.sampleStaticProp) // set a static field or setter
+const result = await SampleObject.sampleStaticMethod(/*...args*/) // call a static method
 ```
 
 ## Sample
@@ -105,7 +102,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.8",
+    "@bitair/concurrent.js": "^0.5.11",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -120,7 +117,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.9/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.11/mod.ts'
 const { factorial } = await concurrent.load(new URL('services/index.ts', import.meta.url))
 const result = await factorial(50n)
 console.log(result)
@@ -210,7 +207,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.8",
+    "@bitair/concurrent.js": "^0.5.11",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -336,4 +333,4 @@ Terminates Concurrent.js
 
 # License
 
-MIT License
+[MIT License](README.md)
