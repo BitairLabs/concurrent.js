@@ -1,11 +1,11 @@
+import { ErrorMessage } from './constants.js'
+import { ConcurrencyError } from './error.js'
+import { Task } from './task.js'
 import { Thread } from './thread.js'
 
 import type { ConcurrencySettings, ThreadPoolSettings } from '../index.d.js'
 import type { IWorkerFactory } from './types.js'
 import type { ThreadedObject } from './threaded_object.js'
-import { Task } from './task.js'
-import { ConcurrencyError } from './error.js'
-import { ErrorMessage } from './constants.js'
 
 declare type AllocationRequest = {
   time: number
@@ -62,6 +62,10 @@ export class ThreadPool {
     return thread as never
   }
 
+  releaseThread(thread: Thread) {
+    thread.locked = false
+  }
+
   registerObject<T extends ThreadedObject>(object: T, id: number, thread: Thread) {
     this.objectRegistry.register(
       object,
@@ -80,7 +84,7 @@ export class ThreadPool {
   async disposeObject(id: number, thread: Thread) {
     const task = Task.disposeObject(id)
     await thread.run(task)
-    if (thread.locked) thread.locked = false
+    thread.locked = false
   }
 
   async descale(force: boolean) {

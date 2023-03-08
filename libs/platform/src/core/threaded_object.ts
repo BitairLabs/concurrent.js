@@ -10,7 +10,7 @@ export class ThreadedObject {
     private pool: ThreadPool,
     private thread: Thread,
     private id: number,
-    public propertyMap: Dict<number>
+    public properties: Dict<string>
   ) {}
 
   static async create(
@@ -22,8 +22,8 @@ export class ThreadedObject {
   ) {
     const thread = await pool.getThread(execSettings.parallel)
     const task = Task.instantiateObject(moduleSrc, exportName, ctorArgs)
-    const [id, propertyMap] = (await thread.run(task)) as InstantiateObjectResult
-    const obj = new ThreadedObject(pool, thread, id, propertyMap)
+    const [id, properties] = (await thread.run(task)) as InstantiateObjectResult
+    const obj = new ThreadedObject(pool, thread, id, properties)
 
     pool.registerObject(obj, id, thread as never)
 

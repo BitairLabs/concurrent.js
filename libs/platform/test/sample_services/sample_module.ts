@@ -3,7 +3,29 @@ import { isMainThread } from 'node:worker_threads'
 import { isPrime } from './math.js'
 
 class BaseClass {
+  static _staticBaseData: number[]
+
   constructor(public _baseData?: number[]) {}
+
+  static set staticBaseData(value) {
+    this._staticBaseData = value
+  }
+
+  static get staticBaseData() {
+    return this._staticBaseData
+  }
+
+  static setStaticBaseData(value: number[]) {
+    return (this._staticBaseData = value)
+  }
+
+  static getStaticBaseData() {
+    return this._staticBaseData
+  }
+
+  static overridableGetStaticBaseData() {
+    return this.staticBaseData
+  }
 
   set baseData(value) {
     this._baseData = value
@@ -44,10 +66,33 @@ class BaseClass {
 }
 
 export class SampleObject extends BaseClass {
+  static staticIsWorker = !isMainThread
+  static _staticData: number[]
+
   public isWorker = !isMainThread
 
   constructor(public _data?: number[]) {
     super(_data)
+  }
+
+  static set staticData(value) {
+    this._staticData = value
+  }
+
+  static get staticData() {
+    return this._staticData
+  }
+
+  static setStaticData(value: number[]) {
+    this.staticData = value
+  }
+
+  static getStaticData() {
+    return this.staticData
+  }
+
+  static override overridableGetStaticBaseData() {
+    return this.staticData
   }
 
   set data(value) {
