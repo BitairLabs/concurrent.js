@@ -26,7 +26,7 @@ describe('Testing Master', () => {
     await concurrent.terminate()
   })
 
-  it.only('should throw an exception when loading a non-function type export', async () => {
+  it('should throw an exception when loading a non-function type export', async () => {
     const { isWorker } = await concurrent.load<typeof Services>(SERVICES_SRC)
     expect(await isWorker()).to.be.true
     try {
