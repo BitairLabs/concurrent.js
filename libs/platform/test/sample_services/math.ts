@@ -1,3 +1,9 @@
+import { isMainThread } from 'node:worker_threads'
+
+export function isWorker() {
+  return !isMainThread
+}
+
 export function isPrime(n: number) {
   const j = Math.sqrt(n)
   for (let i = 2; i <= j; i++) {

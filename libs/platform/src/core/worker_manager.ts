@@ -1,13 +1,15 @@
-import { ErrorMessage, TaskType, ThreadMessageType, ValueType } from './constants.js'
+import { ErrorMessage, TaskType, ThreadMessageType } from './constants.js'
 import { ConcurrencyError } from './error.js'
+import { getProperties } from './utils.js'
 
 import type {
-  Constructor,
-  Dict,
   GetInstancePropertyData,
+  GetStaticPropertyData,
   InstantiateObjectResult,
   InvokeFunctionData,
-  SetInstancePropertyData
+  InvokeStaticMethodData,
+  SetInstancePropertyData,
+  SetStaticPropertyData
 } from './types.js'
 
 import type {
@@ -18,8 +20,6 @@ import type {
   InvokeInstanceMethodData,
   DisposeObjectData
 } from './types.js'
-import { isFunction, isSymbol } from './utils.js'
-
 export class WorkerManager {
   objects: Map<number, unknown> = new Map()
   lastObjectId = 0
@@ -31,6 +31,18 @@ export class WorkerManager {
       try {
         let error, result
         switch (taskType) {
+          case TaskType.InvokeFunction:
+            ;[error, result] = await this.invokeFunction(...(taskData as InvokeFunctionData))
+            break
+          case TaskType.GetStaticProperty:
+            ;[error, result] = await this.getStaticProperty(...(taskData as GetStaticPropertyData))
+            break
+          case TaskType.SetStaticProperty:
+            ;[error, result] = await this.setStaticProperty(...(taskData as SetStaticPropertyData))
+            break
+          case TaskType.InvokeStaticMethod:
+            ;[error, result] = await this.invokeStaticMethod(...(taskData as InvokeStaticMethodData))
+            break
           case TaskType.InstantiateObject:
             ;[error, result] = await this.instantiateObject(...(taskData as InstantiateObjectData))
             break
@@ -45,9 +57,6 @@ export class WorkerManager {
             break
           case TaskType.DisposeObject:
             ;[error, result] = this.disposeObject(...(taskData as DisposeObjectData))
-            break
-          case TaskType.InvokeFunction:
-            ;[error, result] = await this.invokeFunction(...(taskData as InvokeFunctionData))
             break
           default:
             throw new ConcurrencyError(ErrorMessage.InvalidTaskType, taskType)
@@ -69,23 +78,13 @@ export class WorkerManager {
     }
   }
 
-  private async instantiateObject(moduleSrc: string, exportName: string, ctorArgs: unknown[] = []) {
-    const module = await import(moduleSrc)
-    const ctor = module[exportName] as Constructor
-    const obj = new ctor(...ctorArgs)
-    this.lastObjectId += 1
-    this.objects.set(this.lastObjectId, obj)
-    const result = [this.lastObjectId, getPropertyTypeMap(obj)] as InstantiateObjectResult
-    return [undefined, result]
-  }
-
-  private async getInstanceProperty(objectId: number, name: string) {
-    const obj = this.objects.get(objectId) as object
-    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
-
+  private async invokeFunction(moduleSrc: string, functionName: string, args: unknown[] = []) {
     let result, error
+
     try {
-      result = Reflect.get(obj, name)
+      const module = await import(moduleSrc)
+      const method = Reflect.get(module, functionName)
+      result = await method.apply(module.exports, args)
     } catch (err) {
       error = err
     }
@@ -93,13 +92,13 @@ export class WorkerManager {
     return [error, result]
   }
 
-  private async setInstanceProperty(objectId: number, name: string, value: unknown) {
-    const obj = this.objects.get(objectId) as object
-    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
-
+  private async getStaticProperty(moduleSrc: string, exportName: string, propName: string) {
     let result, error
+
     try {
-      result = Reflect.set(obj, name, value)
+      const module = await import(moduleSrc)
+      const _export = Reflect.get(module, exportName)
+      result = Reflect.get(_export, propName)
     } catch (err) {
       error = err
     }
@@ -107,14 +106,88 @@ export class WorkerManager {
     return [error, result]
   }
 
-  private async invokeInstanceMethod(objectId: number, name: string, args: unknown[] = []) {
+  private async setStaticProperty(moduleSrc: string, exportName: string, propName: string, value: unknown) {
+    let result, error
+
+    try {
+      const module = await import(moduleSrc)
+      const _export = Reflect.get(module, exportName)
+      result = Reflect.set(_export, propName, value)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async invokeStaticMethod(moduleSrc: string, exportName: string, methodName: string, args: unknown[] = []) {
+    let result, error
+
+    try {
+      const module = await import(moduleSrc)
+      const _export = Reflect.get(module, exportName)
+      const method = Reflect.get(_export, methodName)
+      result = await Reflect.apply(method, _export, args)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async instantiateObject(moduleSrc: string, exportName: string, args: unknown[] = []) {
+    let result, error
+
+    try {
+      const module = await import(moduleSrc)
+      const ctor = Reflect.get(module, exportName)
+      const obj = Reflect.construct(ctor, args)
+      this.lastObjectId += 1
+      this.objects.set(this.lastObjectId, obj)
+      result = [this.lastObjectId, getProperties(obj)] as InstantiateObjectResult
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async getInstanceProperty(objectId: number, propName: string) {
     const obj = this.objects.get(objectId) as object
     if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
 
     let result, error
     try {
-      const method = Reflect.get(obj, name)
-      result = await method.apply(obj, args)
+      result = Reflect.get(obj, propName)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async setInstanceProperty(objectId: number, propName: string, value: unknown) {
+    const obj = this.objects.get(objectId) as object
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
+
+    let result, error
+    try {
+      result = Reflect.set(obj, propName, value)
+    } catch (err) {
+      error = err
+    }
+
+    return [error, result]
+  }
+
+  private async invokeInstanceMethod(objectId: number, methodName: string, args: unknown[] = []) {
+    const obj = this.objects.get(objectId) as object
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId)
+
+    let result, error
+    try {
+      const method = Reflect.get(obj, methodName)
+      result = await Reflect.apply(method, obj, args)
     } catch (err) {
       error = err
     }
@@ -135,36 +208,4 @@ export class WorkerManager {
 
     return [error, undefined]
   }
-
-  private async invokeFunction(moduleSrc: string, functionName: string, args: unknown[] = []) {
-    const module = await import(moduleSrc)
-
-    let result, error
-    try {
-      const method = Reflect.get(module, functionName)
-      result = await method.apply(module.exports, args)
-    } catch (err) {
-      error = err
-    }
-
-    return [error, result]
-  }
-}
-
-function getPropertyTypeMap(obj: unknown) {
-  const map: Dict<number> = {}
-  while (obj) {
-    const keys = Reflect.ownKeys(obj)
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i] as never
-      if (!isSymbol(key)) {
-        if (!map[key]) {
-          const descriptor = Reflect.getOwnPropertyDescriptor(obj, key) as PropertyDescriptor
-          map[key] = isFunction(descriptor.value) ? ValueType.Function : ValueType.Any
-        }
-      }
-    }
-    obj = Reflect.getPrototypeOf(obj)
-  }
-  return map
 }

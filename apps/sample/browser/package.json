@@ -1,5 +1,4 @@
 {
-  "type": "module",
   "scripts": {
     "lint": "npm run prepare && npx tsc --noEmit",
     "build": "npm run prepare && bash ./scripts/build.sh",

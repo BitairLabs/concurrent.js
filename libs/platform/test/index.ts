@@ -11,7 +11,7 @@ import type * as Services from './sample_services/index.js'
 const THREAD_INSTANTIATION_DELAY = 0.5
 const NOT_RUNNING_ON_WORKER = 'Not running on a worker'
 const SERVICES_SRC = new URL('../build/services/index.js', import.meta.url)
-const { SampleObject, math } = await concurrent.load<typeof Services>(SERVICES_SRC)
+const { SampleObject, isWorker, isPrime, divide } = await concurrent.load<typeof Services>(SERVICES_SRC)
 
 concurrent.config({
   maxThreads: 2
@@ -26,14 +26,31 @@ describe('Testing Master', () => {
     await concurrent.terminate()
   })
 
-  it('should instantiate an object', async () => {
+  it.only('should throw an exception when loading a non-function type export', async () => {
+    const { isWorker } = await concurrent.load<typeof Services>(SERVICES_SRC)
+    expect(await isWorker()).to.be.true
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { Math } = await concurrent.load<typeof Services>(SERVICES_SRC)
+      await Math.isPrime(3)
+    } catch (error) {
+      expect((error as ConcurrencyError).code).to.be.equal(ErrorMessage.NonFunctionLoad.code)
+    }
+  })
+
+  it('should invoke an exported function', async () => {
+    expect(await isWorker()).to.be.true
+    expect(await isPrime(3)).to.be.equal(true)
+  })
+
+  it('should instantiate an exported class', async () => {
     const obj = await new SampleObject()
-    const isWorker = await obj.isWorker
-    expect(isWorker).to.be.true
+    const isWorker = obj.isWorker
+    expect(await isWorker).to.be.true
     await concurrent.dispose(obj)
   })
 
-  it('should instantiate an object with args', async () => {
+  it('should instantiate an exported class with args', async () => {
     const obj = await new SampleObject([1])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     expect(await obj._data).to.be.deep.equal([1])
@@ -44,45 +61,97 @@ describe('Testing Master', () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
     expect(await obj._data).to.be.deep.equal([])
-    expect(await ((obj._data = [1]), obj._data)).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access a prototype field', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj._baseData).to.be.deep.equal([])
-    expect(await ((obj._baseData = [1]), obj._baseData)).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access an instance getter', async () => {
-    const obj = await new SampleObject([1])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.data).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access a prototype getter', async () => {
-    const obj = await new SampleObject([1])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.baseData).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access an instance setter', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    await ((obj.data = [1]), obj.data)
+    await ((obj._data = [1]), obj._data)
     expect(await obj._data).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
 
-  it('should access a prototype setter', async () => {
+  it('should access an instance getter/setter', async () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    await ((obj.baseData = [1]), obj.baseData)
+    expect(await obj.data).to.be.deep.equal([])
+    await ((obj.data = [1]), obj.data)
+    expect(await obj.data).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access an instance method', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj.getData()).to.be.deep.equal([])
+    await obj.setData([1])
+    expect(await obj.getData()).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access an inherited field', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj._baseData).to.be.deep.equal([])
+    await ((obj._baseData = [1]), obj._baseData)
     expect(await obj._baseData).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access an inherited getter/setter', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj.baseData).to.be.deep.equal([])
+    await ((obj.baseData = [1]), obj.baseData)
+    expect(await obj.baseData).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access an inherited method', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj.getBaseData()).to.be.deep.equal([])
+    await obj.setBaseData([1])
+    expect(await obj.getBaseData()).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access a static field', async () => {
+    const obj = SampleObject
+    assert(await obj.staticIsWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj._staticData).to.be.deep.equal(undefined)
+    await ((obj._staticData = [1]), obj._staticData)
+    expect(await obj._staticData).to.be.deep.equal([1])
+  })
+
+  it('should access a static getter/setter', async () => {
+    const obj = SampleObject
+    assert(await obj.staticIsWorker, NOT_RUNNING_ON_WORKER)
+    await ((obj._staticData = [1]), obj._staticData)
+    expect(await obj.staticData).to.be.deep.equal([1])
+    await ((obj.staticData = [2]), obj.staticData)
+    expect(await obj.staticData).to.be.deep.equal([2])
+  })
+
+  it('should access a static method', async () => {
+    const obj = SampleObject
+    assert(await obj.staticIsWorker, NOT_RUNNING_ON_WORKER)
+    await ((obj._staticData = [1]), obj._staticData)
+    expect(await obj.getStaticData()).to.be.deep.equal([1])
+    await obj.setStaticData([2])
+    expect(await obj.getStaticData()).to.be.deep.equal([2])
+  })
+
+  it('should access an async method', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    expect(await obj.getDataAsync()).to.be.deep.equal([])
+    await obj.setDataAsync([1])
+    expect(await obj.getDataAsync()).to.be.deep.equal([1])
+    await concurrent.dispose(obj)
+  })
+
+  it('should access an overridden method', async () => {
+    const obj = await new SampleObject([])
+    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
+    await obj.setBaseData([1])
+    expect(await obj.getBaseData()).to.be.deep.equal([1])
+    expect(await obj.overridableGetBaseData()).to.be.deep.equal([])
     await concurrent.dispose(obj)
   })
 
@@ -97,15 +166,6 @@ describe('Testing Master', () => {
     await concurrent.dispose(obj)
   })
 
-  it('should access an instance method', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.getData()).to.be.deep.equal([])
-    await obj.setData([1])
-    expect(await obj.getData()).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
   it('should throw an exception when accessing an undefined method', async () => {
     const obj = await new SampleObject([])
     assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
@@ -114,42 +174,6 @@ describe('Testing Master', () => {
     } catch (error) {
       expect((error as Error) instanceof TypeError).to.be.true
     }
-    await concurrent.dispose(obj)
-  })
-
-  it('should access a prototype method', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.getBaseData()).to.be.deep.equal([])
-    await obj.setBaseData([1])
-    expect(await obj.getBaseData()).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access an overridden method', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    await obj.setBaseData([1])
-    expect(await obj.getBaseData()).to.be.deep.equal([1])
-    expect(await obj.overridableGetBaseData()).to.be.deep.equal([])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access an async instance method', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.getDataAsync()).to.be.deep.equal([])
-    await obj.setDataAsync([1])
-    expect(await obj.getDataAsync()).to.be.deep.equal([1])
-    await concurrent.dispose(obj)
-  })
-
-  it('should access an async prototype method', async () => {
-    const obj = await new SampleObject([])
-    assert(await obj.isWorker, NOT_RUNNING_ON_WORKER)
-    expect(await obj.getBaseDataAsync()).to.be.deep.equal([])
-    await obj.setBaseDataAsync([1])
-    expect(await obj.getBaseDataAsync()).to.be.deep.equal([1])
     await concurrent.dispose(obj)
   })
 
@@ -167,10 +191,6 @@ describe('Testing Master', () => {
     expect(await obj.isPrime(3)).to.be.equal(true)
     expect(await obj.isPrime(4)).to.be.equal(false)
     await concurrent.dispose(obj)
-  })
-
-  it('should invoke an exported function', async () => {
-    expect(await math.isPrime(3)).to.be.equal(true)
   })
 
   it('should run multiple instance methods in parallel', async () => {
@@ -198,13 +218,13 @@ describe('Testing Master', () => {
   })
 
   it('should run multiple functions in parallel', async () => {
-    const { math } = await concurrent.load<typeof Services>(SERVICES_SRC, {
+    const { isPrime } = await concurrent.load<typeof Services>(SERVICES_SRC, {
       parallel: true
     })
 
     const ops: Promise<boolean>[] = []
     for (let i = 0; i < cpus().length * 20; i++) {
-      ops.push(Promise.resolve(math.isPrime(i)))
+      ops.push(Promise.resolve(isPrime(i)))
     }
 
     const startTime = performance.now()
@@ -216,7 +236,7 @@ describe('Testing Master', () => {
 
   it('should bubble up an unhandled exception', async () => {
     try {
-      await math.divide(1, 0)
+      await divide(1, 0)
     } catch (error) {
       expect((error as Error).message).to.be.equal('Division by zero')
     }
@@ -276,11 +296,10 @@ describe('Testing Master', () => {
     concurrent.config({
       disabled: true
     })
-    const { SampleObject } = await concurrent.load<typeof Services>(SERVICES_SRC)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const obj = await new SampleObject()
-    expect(obj.isWorker).to.be.false
-    await concurrent.dispose(obj)
+    const { SampleObject, isWorker } = await concurrent.load<typeof Services>(SERVICES_SRC)
+    const obj = await new SampleObject([1])
+    expect(await obj.isWorker).to.be.false
+    expect(await isWorker()).to.be.false
     concurrent.config({
       disabled: false
     })

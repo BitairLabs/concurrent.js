@@ -6,11 +6,34 @@ import type {
   InvokeInstanceMethodData,
   InvokeFunctionData,
   GetInstancePropertyData,
-  SetInstancePropertyData
+  SetInstancePropertyData,
+  GetStaticPropertyData,
+  InvokeStaticMethodData,
+  SetStaticPropertyData
 } from './types.js'
 
 export class Task {
   private constructor(public type: TaskType, public data: unknown[]) {}
+
+  static invokeFunction(moduleSrc: string, functionName: string, args: unknown[]) {
+    const data: InvokeFunctionData = [moduleSrc, functionName, args]
+    return new Task(TaskType.InvokeFunction, data)
+  }
+
+  static getStaticProperty(moduleSrc: string, exportName: string, propName: string) {
+    const data: GetStaticPropertyData = [moduleSrc, exportName, propName]
+    return new Task(TaskType.GetStaticProperty, data)
+  }
+
+  static setStaticProperty(moduleSrc: string, exportName: string, propName: string, value: unknown) {
+    const data: SetStaticPropertyData = [moduleSrc, exportName, propName, value]
+    return new Task(TaskType.SetStaticProperty, data)
+  }
+
+  static invokeStaticMethod(moduleSrc: string, exportName: string, methodName: string, args: unknown[]) {
+    const data: InvokeStaticMethodData = [moduleSrc, exportName, methodName, args]
+    return new Task(TaskType.InvokeStaticMethod, data)
+  }
 
   static instantiateObject(moduleSrc: string, exportName: string, ctorArgs: unknown[]) {
     const data: InstantiateObjectData = [moduleSrc, exportName, ctorArgs]
@@ -35,10 +58,5 @@ export class Task {
   static disposeObject(objectId: number) {
     const data: DisposeObjectData = [objectId]
     return new Task(TaskType.DisposeObject, data)
-  }
-
-  static invokeFunction(moduleSrc: string, functionName: string, args: unknown[]) {
-    const data: InvokeFunctionData = [moduleSrc, functionName, args]
-    return new Task(TaskType.InvokeFunction, data)
   }
 }
