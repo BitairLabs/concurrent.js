@@ -1,17 +1,13 @@
 import { Task } from './task.js'
+import { createObject } from './utils.js'
 
 import type { ExecutionSettings } from '../index.d.js'
 import type { Thread } from './thread.js'
 import type { ThreadPool } from './thread_pool.js'
-import type { Dict, InstantiateObjectResult } from './types.js'
+import type { InstantiateObjectResult } from './types.js'
 
 export class ThreadedObject {
-  private constructor(
-    private pool: ThreadPool,
-    private thread: Thread,
-    private id: number,
-    public properties: Dict<string>
-  ) {}
+  private constructor(private pool: ThreadPool, private thread: Thread, private id: number, public target: object) {}
 
   static async create(
     pool: ThreadPool,
@@ -23,7 +19,8 @@ export class ThreadedObject {
     const thread = await pool.getThread(execSettings.parallel)
     const task = Task.instantiateObject(moduleSrc, exportName, ctorArgs)
     const [id, properties] = (await thread.run(task)) as InstantiateObjectResult
-    const obj = new ThreadedObject(pool, thread, id, properties)
+
+    const obj = new ThreadedObject(pool, thread, id, createObject(properties))
 
     pool.registerObject(obj, id, thread as never)
 

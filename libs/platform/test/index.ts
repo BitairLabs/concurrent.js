@@ -3,10 +3,11 @@ import { cpus } from 'node:os'
 import { ErrorMessage } from '../src/core/constants.js'
 import type { ConcurrencyError } from '../src/core/error.js'
 import { Constants } from '../src/core/index.js'
+import { getProperties } from '../src/core/utils.js'
 
 import { concurrent } from '../src/node/index.js'
 
-import type * as Services from './sample_services/index.js'
+import * as Services from './sample_services/index.js'
 
 const THREAD_INSTANTIATION_DELAY = 0.5
 const NOT_RUNNING_ON_WORKER = 'Not running on a worker'
@@ -17,7 +18,7 @@ concurrent.config({
   maxThreads: 2
 })
 
-describe('Testing Master', () => {
+describe('Testing platform ', () => {
   before(() => {
     process.env['BASE_URL'] = new URL('../build/', import.meta.url).href
   })
@@ -26,8 +27,19 @@ describe('Testing Master', () => {
     await concurrent.terminate()
   })
 
+  it('should not alter static members', async () => {
+    expect(await isWorker()).to.be.true
+    expect(getProperties(isPrime)).to.be.deep.equal(getProperties(Services.isPrime))
+    expect(getProperties(SampleObject)).to.be.deep.equal(getProperties(Services.SampleObject))
+  })
+
+  it('should not alter instance members', async () => {
+    const obj = await new SampleObject()
+    expect(await obj.isWorker).to.be.true
+    expect(getProperties(obj)).to.be.deep.equal(getProperties(new Services.SampleObject()))
+  })
+
   it('should throw an exception when loading a non-function type export', async () => {
-    const { isWorker } = await concurrent.load<typeof Services>(SERVICES_SRC)
     expect(await isWorker()).to.be.true
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,8 +57,7 @@ describe('Testing Master', () => {
 
   it('should instantiate an exported class', async () => {
     const obj = await new SampleObject()
-    const isWorker = obj.isWorker
-    expect(await isWorker).to.be.true
+    expect(await obj.isWorker).to.be.true
     await concurrent.dispose(obj)
   })
 
