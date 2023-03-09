@@ -11,6 +11,16 @@ var ErrorMessage = {
   MethodAssignment: { code: 509, text: "Can't assign a method." },
   NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." }
 };
+var ValueType = {
+  undefined: 1,
+  boolean: 2,
+  number: 3,
+  bigint: 4,
+  string: 5,
+  symbol: 6,
+  function: 7,
+  object: 8
+};
 var SYMBOL = {
   DISPOSE: Symbol("DISPOSE")
 };
@@ -37,7 +47,7 @@ function getProperties(obj) {
       if (!isSymbol(key)) {
         if (!map[key]) {
           const descriptor = Reflect.getOwnPropertyDescriptor(obj, key);
-          map[key] = typeof descriptor?.value;
+          map[key] = Reflect.get(ValueType, typeof descriptor?.value);
         }
       }
     }
