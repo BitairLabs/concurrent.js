@@ -1,3 +1,7 @@
+import { ValueType } from './constants.js'
+
+import type { Dict } from './types.js'
+
 export function sleep(seconds: number | undefined = 0) {
   return new Promise(resolve => {
     const timer = setTimeout(() => {
@@ -46,7 +50,8 @@ export function getCollectionItem<T>(index: number, list: Iterable<T>) {
 }
 
 export function getProperties(obj: unknown) {
-  const map: NodeJS.Dict<string> = {}
+  const map: Dict<number> = {}
+
   while (obj) {
     const keys = Reflect.ownKeys(obj)
     for (let i = 0; i < keys.length; i++) {
@@ -54,7 +59,7 @@ export function getProperties(obj: unknown) {
       if (!isSymbol(key)) {
         if (!map[key]) {
           const descriptor = Reflect.getOwnPropertyDescriptor(obj, key) as PropertyDescriptor
-          map[key] = typeof descriptor?.value
+          map[key] = Reflect.get(ValueType, typeof descriptor?.value)
         }
       }
     }
@@ -62,4 +67,40 @@ export function getProperties(obj: unknown) {
   }
 
   return map
+}
+
+export function createObject(properties: Dict<number>) {
+  const obj: object = {}
+
+  for (const key in properties) {
+    if (Object.prototype.hasOwnProperty.call(properties, key)) {
+      const type = properties[key] as number
+      const defaultValue = (() => {
+        switch (type) {
+          case 1:
+            return undefined
+          case 2:
+            return false
+          case 3:
+            return 0
+          case 4:
+            return BigInt('0n')
+          case 5:
+            return ''
+          case 6:
+            return Symbol()
+          case 7:
+            return new Function()
+          case 8:
+            return new Object()
+          default:
+            return undefined
+        }
+      })()
+
+      Reflect.set(obj, key, defaultValue)
+    }
+  }
+
+  return obj
 }

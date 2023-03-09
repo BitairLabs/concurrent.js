@@ -20,8 +20,7 @@ export class Thread {
     return new Promise((resolve, reject) => {
       const coroutine = Coroutine.create((error: Error | undefined, result: unknown) => {
         this.coroutines.delete(coroutine.id)
-        if (error) return reject(error)
-        return resolve(result)
+        return error ? reject(error) : resolve(result)
       })
 
       const taskInfo = [coroutine.id, task.type, task.data] as TaskInfo

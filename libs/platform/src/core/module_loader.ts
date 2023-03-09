@@ -1,4 +1,4 @@
-import { ErrorMessage, SYMBOL, ValueType } from './constants.js'
+import { ErrorMessage, SYMBOL } from './constants.js'
 import { ConcurrencyError } from './error.js'
 import { ThreadedFunction } from './threaded_function.js'
 import { ThreadedObject } from './threaded_object.js'
@@ -6,6 +6,7 @@ import { isFunction } from './utils.js'
 
 import type { ExecutionSettings } from '../index.d.js'
 import type { ThreadPool } from './thread_pool.js'
+
 export class ModuleLoader {
   constructor(private pool: ThreadPool) {}
 
@@ -13,14 +14,19 @@ export class ModuleLoader {
     const pool = this.pool
     const module = await import(moduleSrc)
 
+    const cache = {}
     return new Proxy(module, {
       get(module, exportName) {
-        if (!Reflect.has(module, exportName)) return
-
         const _export = Reflect.get(module, exportName)
-        if (!isFunction(_export)) throw new ConcurrencyError(ErrorMessage.NonFunctionLoad)
 
-        return createFunctionProxy(pool, moduleSrc, _export, execSettings)
+        if (!Reflect.has(module, exportName)) return
+        else if (!isFunction(_export)) throw new ConcurrencyError(ErrorMessage.NonFunctionLoad)
+        else {
+          if (!Reflect.has(cache, exportName))
+            Reflect.set(cache, exportName, createFunctionProxy(pool, moduleSrc, _export, execSettings))
+
+          return Reflect.get(cache, exportName)
+        }
       }
     })
   }
@@ -37,37 +43,35 @@ function createFunctionProxy(
 
   return new Proxy(target, {
     get(target, key) {
-      if (!Reflect.has(target, key)) return
-
       const prop = Reflect.get(target, key)
-      if (prop instanceof Promise) return prop
 
-      if (!isFunction(prop)) return threadedFunction.getStaticProperty(key as string)
+      if (!Reflect.has(target, key)) return
+      else if (prop instanceof AsyncSetter) return prop.wait()
+      else if (!isFunction(prop)) return threadedFunction.getStaticProperty(key as string)
       else return (...params: unknown[]) => threadedFunction.invokeStaticMethod(key as string, params)
     },
+
     set(target, key, value) {
-      if (!Reflect.has(target, key)) return false
-
       const prop = Reflect.get(target, key)
-      if (isFunction(prop)) throw new ConcurrencyError(ErrorMessage.MethodAssignment)
 
-      const setter = new Promise((resolve, reject) => {
-        threadedFunction
-          .setStaticProperty(key as string, value)
-          .then(() => {
+      if (!Reflect.has(target, key)) return false
+      else if (isFunction(prop)) throw new ConcurrencyError(ErrorMessage.MethodAssignment)
+      else {
+        const setter = new AsyncSetter(() =>
+          threadedFunction.setStaticProperty(key as string, value).then(() => {
             Reflect.set(target, key, undefined)
-            resolve(value)
           })
-          .catch(error => reject(error))
-      })
+        )
 
-      Reflect.set(target, key, setter)
-
-      return true
+        Reflect.set(target, key, setter)
+        return true
+      }
     },
+
     construct(target, args) {
       return createObjectProxy(pool, moduleSrc, target.name, args, execSettings)
     },
+
     apply(_target, _thisArg, args) {
       return threadedFunction.invoke(args)
     }
@@ -83,39 +87,40 @@ async function createObjectProxy(
 ) {
   const threadedObject = await ThreadedObject.create(pool, moduleSrc, exportName, args, execSettings)
 
-  return new Proxy(threadedObject.properties, {
+  return new Proxy(threadedObject.target, {
     get(target, key) {
-      if (key === SYMBOL.DISPOSE) return threadedObject.dispose.bind(threadedObject) as never
-      if (!Reflect.has(target, key)) return
-
       const prop = Reflect.get(target, key)
-      if (prop instanceof Promise) return prop
 
-      if (threadedObject.properties[key as string] === ValueType.Function) {
-        return (...params: unknown[]) => threadedObject.invoke(key as string, params)
-      } else {
-        return threadedObject.getProperty(key as string)
-      }
+      if (key === SYMBOL.DISPOSE) return threadedObject.dispose.bind(threadedObject) as never
+      else if (!Reflect.has(target, key)) return
+      else if (prop instanceof AsyncSetter) return prop.wait()
+      else if (isFunction(prop)) return (...params: unknown[]) => threadedObject.invoke(key as string, params)
+      else return threadedObject.getProperty(key as string)
     },
 
     set(target, key, value) {
+      const prop = Reflect.get(target, key)
+
       if (!Reflect.has(target, key)) return false
-      if (threadedObject.properties[key as string] === ValueType.Function)
-        throw new ConcurrencyError(ErrorMessage.MethodAssignment)
-
-      const setter = new Promise((resolve, reject) => {
-        threadedObject
-          .setProperty(key as string, value)
-          .then(() => {
-            Reflect.set(target, key, ValueType.Undefined)
-            resolve(value)
+      else if (isFunction(prop)) throw new ConcurrencyError(ErrorMessage.MethodAssignment)
+      else {
+        const setter = new AsyncSetter(() =>
+          threadedObject.setProperty(key as string, value).then(() => {
+            Reflect.set(target, key, undefined)
           })
-          .catch(error => reject(error))
-      })
+        )
+        Reflect.set(target, key, setter)
 
-      Reflect.set(target, key, setter)
-
-      return true
+        return true
+      }
     }
   })
+}
+
+class AsyncSetter {
+  constructor(private setter: () => Promise<void>) {}
+
+  wait() {
+    return this.setter()
+  }
 }
