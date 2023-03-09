@@ -28,9 +28,15 @@ export const ErrorMessage = {
   NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." }
 }
 
-export enum ValueType {
-  Function = 'function',
-  Undefined = 'undefined'
+export const ValueType = {
+  undefined: 1,
+  boolean: 2,
+  number: 3,
+  bigint: 4,
+  string: 5,
+  symbol: 6,
+  function: 7,
+  object: 8
 }
 
 export const SYMBOL = {

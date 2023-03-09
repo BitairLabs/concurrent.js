@@ -47,7 +47,7 @@ export class SampleObject extends BaseClass {
   static staticIsWorker = !isMainThread
   static _staticData: number[]
 
-  public isWorker = !isMainThread
+  isWorker = !isMainThread
 
   constructor(public _data?: number[]) {
     super(_data)
