@@ -1,49 +1,60 @@
+import { TaskType } from './constants.js'
 import { Task } from './task.js'
 import { createObject } from './utils.js'
 
-import type { ExecutionSettings } from '../index.d.js'
 import type { Thread } from './thread.js'
-import type { ThreadPool } from './thread_pool.js'
-import type { InstantiateObjectResult } from './types.js'
+import type {
+  DisposeObjectData,
+  GetInstancePropertyData,
+  InstantiateObjectData,
+  InstantiateObjectResult,
+  InvokeInstanceMethodData,
+  SetInstancePropertyData
+} from './types.js'
+
+declare type ObjectRegistryEntry = {
+  id: number
+  threadRef: WeakRef<Thread>
+}
 
 export class ThreadedObject {
-  private constructor(private pool: ThreadPool, private thread: Thread, private id: number, public target: object) {}
+  static objectRegistry = new FinalizationRegistry(({ id, threadRef }: ObjectRegistryEntry) => {
+    const thread = threadRef.deref()
+    if (thread) this.disposeObject(id, thread).finally()
+  })
 
-  static async create(
-    pool: ThreadPool,
-    moduleSrc: string,
-    exportName: string,
-    ctorArgs: unknown[],
-    execSettings: ExecutionSettings
-  ) {
-    const thread = await pool.getThread(execSettings.parallel)
-    const task = Task.instantiateObject(moduleSrc, exportName, ctorArgs)
+  private constructor(private thread: Thread, private id: number, public target: object) {}
+
+  static async disposeObject(id: number, thread: Thread) {
+    const task = new Task<DisposeObjectData>(TaskType.DisposeObject, [id])
+    await thread.run(task)
+  }
+
+  static async create(thread: Thread, moduleSrc: string, exportName: string, ctorArgs: unknown[]) {
+    const task = new Task<InstantiateObjectData>(TaskType.InstantiateObject, [moduleSrc, exportName, ctorArgs])
     const [id, properties] = (await thread.run(task)) as InstantiateObjectResult
+    const obj = new ThreadedObject(thread, id, createObject(properties))
 
-    const obj = new ThreadedObject(pool, thread, id, createObject(properties))
-
-    pool.registerObject(obj, id, thread as never)
+    this.objectRegistry.register(obj, { id, threadRef: new WeakRef(thread) }, obj)
 
     return obj
   }
 
   async getProperty(propName: string) {
-    const task = Task.getInstanceProperty(this.id as number, propName)
-    return await this.thread.run(task)
+    const task = new Task<GetInstancePropertyData>(TaskType.GetInstanceProperty, [this.id, propName])
+    const result = await this.thread.run(task)
+    return result
   }
 
   async setProperty(propName: string, value: unknown) {
-    const task = Task.setInstanceProperty(this.id as number, propName, value)
-    return await this.thread.run(task)
+    const task = new Task<SetInstancePropertyData>(TaskType.SetInstanceProperty, [this.id, propName, value])
+    const result = await this.thread.run(task)
+    return result
   }
 
   async invoke(methodName: string, args: unknown[]) {
-    const task = Task.invokeInstanceMethod(this.id as number, methodName, args)
-    return await this.thread.run(task)
-  }
-
-  async dispose() {
-    this.pool.unregisterObject(this)
-    this.pool.disposeObject(this.id as never, this.thread as never)
+    const task = new Task<InvokeInstanceMethodData>(TaskType.InvokeInstanceMethod, [this.id, methodName, args])
+    const result = await this.thread.run(task)
+    return result
   }
 }

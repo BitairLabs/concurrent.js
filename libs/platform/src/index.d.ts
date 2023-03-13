@@ -3,11 +3,8 @@ export { concurrent }
 
 export declare interface IConcurrent {
   config(settings: Partial<ConcurrencySettings>): void
-  load<T>(src: string | URL, settings?: Partial<ExecutionSettings>): Promise<T>
-  descale(force?: boolean): Promise<void>
+  module<T>(moduleSrc: string | URL): IConcurrentModule<T>
   terminate(force?: boolean): Promise<void>
-  start(): Promise<void>
-  dispose(obj: unknown): Promise<void>
 }
 
 export declare type ConcurrencySettings = {
@@ -17,11 +14,9 @@ export declare type ConcurrencySettings = {
 export declare type ThreadPoolSettings = {
   maxThreads: number
   minThreads: number
-  threadAllocationTimeout: number | typeof Infinity
   threadIdleTimeout: number | typeof Infinity
 }
 
-export declare type ExecutionSettings = {
-  parallel: boolean
-  timeout: number | typeof Infinity
+export declare interface IConcurrentModule<T> {
+  load: () => Promise<T>
 }

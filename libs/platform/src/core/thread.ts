@@ -9,18 +9,23 @@ import type { ThreadMessage, TaskResult, TaskInfo, IWorker, IWorkerFactory } fro
 export class Thread {
   private coroutines: Map<number, Coroutine> = new Map()
   private worker: IWorker
+  private terminated = false
   locked = false
+  refs = 0
 
   constructor(private workerFactory: IWorkerFactory) {
     this.worker = workerFactory.create()
     this.initWorker()
   }
 
-  async run(task: Task) {
-    return new Promise((resolve, reject) => {
+  async run(task: Task<unknown[]>) {
+    if (this.terminated) throw new ConcurrencyError(ErrorMessage.ThreadTerminated)
+
+    const result = new Promise((resolve, reject) => {
       const coroutine = Coroutine.create((error: Error | undefined, result: unknown) => {
         this.coroutines.delete(coroutine.id)
-        return error ? reject(error) : resolve(result)
+        if (error) reject(error)
+        else resolve(result)
       })
 
       const taskInfo = [coroutine.id, task.type, task.data] as TaskInfo
@@ -28,6 +33,15 @@ export class Thread {
       const message: ThreadMessage = [ThreadMessageType.RunTask, taskInfo]
       this.postMessage(message)
     })
+    return result
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async terminate(_force = false) {
+    // TODO: terminate gracefully
+    this.terminated = true
+    this.coroutines.clear()
+    this.worker.terminate()
   }
 
   private initWorker() {
@@ -41,16 +55,6 @@ export class Thread {
       this.worker = this.workerFactory.create()
       throw error
     })
-  }
-
-  async terminate(force: boolean) {
-    if (!force) {
-      this.coroutines.clear()
-      this.worker.terminate()
-    } else {
-      // TODO: terminate gracefully
-      this.terminate(force)
-    }
   }
 
   private postMessage(message: [ThreadMessageType, unknown]) {

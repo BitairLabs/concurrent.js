@@ -1,18 +1,20 @@
-import { ErrorMessage, SYMBOL } from './constants.js'
+import { ErrorMessage } from './constants.js'
 import { ConcurrencyError } from './error.js'
 import { ThreadedFunction } from './threaded_function.js'
 import { ThreadedObject } from './threaded_object.js'
 import { isFunction } from './utils.js'
 
-import type { ExecutionSettings } from '../index.d.js'
+import type { IConcurrentModule } from '../index.js'
 import type { ThreadPool } from './thread_pool.js'
+import type { Thread } from './thread.js'
 
-export class ModuleLoader {
-  constructor(private pool: ThreadPool) {}
+export class ConcurrentModule<T> implements IConcurrentModule<T> {
+  constructor(private pool: ThreadPool, private src: string) {}
 
-  async load(moduleSrc: string, execSettings: ExecutionSettings) {
-    const pool = this.pool
-    const module = await import(moduleSrc)
+  async load() {
+    const moduleSrc = this.src
+    const module = await import(this.src)
+    const thread = await this.pool.getThread()
 
     const cache = {}
     return new Proxy(module, {
@@ -23,7 +25,7 @@ export class ModuleLoader {
         else if (!isFunction(_export)) throw new ConcurrencyError(ErrorMessage.NonFunctionLoad)
         else {
           if (!Reflect.has(cache, exportName))
-            Reflect.set(cache, exportName, createFunctionProxy(pool, moduleSrc, _export, execSettings))
+            Reflect.set(cache, exportName, createFunctionProxy(thread, moduleSrc, _export))
 
           return Reflect.get(cache, exportName)
         }
@@ -33,13 +35,12 @@ export class ModuleLoader {
 }
 
 function createFunctionProxy(
-  pool: ThreadPool,
+  thread: Thread,
   moduleSrc: string,
   // eslint-disable-next-line @typescript-eslint/ban-types
-  target: Function,
-  execSettings: ExecutionSettings
+  target: Function
 ) {
-  const threadedFunction = new ThreadedFunction(pool, moduleSrc, target.name, execSettings)
+  const threadedFunction = new ThreadedFunction(thread, moduleSrc, target.name)
 
   return new Proxy(target, {
     get(target, key) {
@@ -69,7 +70,7 @@ function createFunctionProxy(
     },
 
     construct(target, args) {
-      return createObjectProxy(pool, moduleSrc, target.name, args, execSettings)
+      return createObjectProxy(thread, moduleSrc, target.name, args)
     },
 
     apply(_target, _thisArg, args) {
@@ -78,21 +79,14 @@ function createFunctionProxy(
   })
 }
 
-async function createObjectProxy(
-  pool: ThreadPool,
-  moduleSrc: string,
-  exportName: string,
-  args: unknown[],
-  execSettings: ExecutionSettings
-) {
-  const threadedObject = await ThreadedObject.create(pool, moduleSrc, exportName, args, execSettings)
+async function createObjectProxy(thread: Thread, moduleSrc: string, exportName: string, args: unknown[]) {
+  const threadedObject = await ThreadedObject.create(thread, moduleSrc, exportName, args)
 
   return new Proxy(threadedObject.target, {
     get(target, key) {
       const prop = Reflect.get(target, key)
 
-      if (key === SYMBOL.DISPOSE) return threadedObject.dispose.bind(threadedObject) as never
-      else if (!Reflect.has(target, key)) return
+      if (!Reflect.has(target, key)) return
       else if (prop instanceof AsyncSetter) return prop.wait()
       else if (isFunction(prop)) return (...params: unknown[]) => threadedObject.invoke(key as string, params)
       else return threadedObject.getProperty(key as string)

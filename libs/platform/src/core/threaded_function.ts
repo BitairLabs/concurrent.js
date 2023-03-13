@@ -1,45 +1,53 @@
+import { TaskType } from './constants.js'
 import { Task } from './task.js'
 
-import type { ExecutionSettings } from '../index.d.js'
-import type { ThreadPool } from './thread_pool.js'
+import type {
+  GetStaticPropertyData,
+  InvokeFunctionData,
+  InvokeStaticMethodData,
+  SetStaticPropertyData
+} from './types.js'
+
+import type { Thread } from './thread.js'
 
 export class ThreadedFunction {
-  constructor(
-    private pool: ThreadPool,
-    private moduleSrc: string,
-    private exportName: string,
-    private execSettings: ExecutionSettings
-  ) {}
+  constructor(private thread: Thread, private moduleSrc: string, private exportName: string) {}
 
   async invoke(args: unknown[]) {
-    const thread = await this.pool.getThread(this.execSettings.parallel)
-    const task = Task.invokeFunction(this.moduleSrc, this.exportName, args)
-    const result = await thread.run(task)
-    if (this.execSettings.parallel) this.pool.releaseThread(thread)
+    const task = new Task<InvokeFunctionData>(TaskType.InvokeFunction, [this.moduleSrc, this.exportName, args])
+    const result = await this.thread.run(task)
     return result
   }
 
   async getStaticProperty(propName: string): Promise<unknown> {
-    const thread = await this.pool.getThread(this.execSettings.parallel)
-    const task = Task.getStaticProperty(this.moduleSrc, this.exportName, propName)
-    const result = await thread.run(task)
-    if (this.execSettings.parallel) this.pool.releaseThread(thread)
+    const task = new Task<GetStaticPropertyData>(TaskType.GetStaticProperty, [
+      this.moduleSrc,
+      this.exportName,
+      propName
+    ])
+    const result = await this.thread.run(task)
     return result
   }
 
   async setStaticProperty(propName: string, value: unknown) {
-    const thread = await this.pool.getThread(this.execSettings.parallel)
-    const task = Task.setStaticProperty(this.moduleSrc, this.exportName, propName, value)
-    const result = await thread.run(task)
-    if (this.execSettings.parallel) this.pool.releaseThread(thread)
+    const task = new Task<SetStaticPropertyData>(TaskType.SetStaticProperty, [
+      this.moduleSrc,
+      this.exportName,
+      propName,
+      value
+    ])
+    const result = await this.thread.run(task)
     return result
   }
 
   async invokeStaticMethod(methodName: string, args: unknown[]) {
-    const thread = await this.pool.getThread(this.execSettings.parallel)
-    const task = Task.invokeStaticMethod(this.moduleSrc, this.exportName, methodName, args)
-    const result = await thread.run(task)
-    if (this.execSettings.parallel) this.pool.releaseThread(thread)
+    const task = new Task<InvokeStaticMethodData>(TaskType.InvokeStaticMethod, [
+      this.moduleSrc,
+      this.exportName,
+      methodName,
+      args
+    ])
+    const result = await this.thread.run(task)
     return result
   }
 }
