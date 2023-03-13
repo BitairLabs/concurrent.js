@@ -1,6 +1,6 @@
 # Intro
 
-At the highest level of its design, Concurrent.js is a module loader like `require` and `import`. But instead of loading a module into the main thread, it loads the module into workers. It injects the concurrent behavior into the imported classes and functions so they can be used as usual. Concurrent.js has a "write less, do more" syntax and works on Node.js, Deno, and browsers.
+At the highest level of its design, Concurrent.js is a module loader like `require` and `import`, but instead of loading a module into the main thread, it loads the module into a worker. It injects the concurrent behavior into the imported classes and functions so they can be used as usual. Concurrent.js works on Node.js, Deno, and web browsers.
 
 Important notes
 
@@ -60,22 +60,25 @@ bash hello_world.sh
 # Usage
 
 ```js
-// import
-const { SampleObject, sampleFunction } = await concurrent.load('sample-module-path')
+// load a module into a worker
+const { SampleObject, sampleFunction } = await concurrent.module('sample-module').load()
 
-// access an exported function
+// access a function
 const result = await sampleFunction(/*...args*/) // call the function
 
-// access an exported class
+// access a class
 const obj = await new SampleObject(/*...args*/) // instantiate
 const value = await obj.sampleProp // get a field or getter
 await ((obj.sampleProp = 1), obj.sampleProp) // set a field or setter
 const result = await obj.sampleMethod(/*...args*/) // call a method
 
-// access static members of an exported class
+// access static members of a class
 const value = await SampleObject.sampleStaticProp // get a static field or getter
 await ((SampleObject.sampleStaticProp = 1), SampleObject.sampleStaticProp) // set a static field or setter
 const result = await SampleObject.sampleStaticMethod(/*...args*/) // call a static method
+
+// terminate Concurrent.js
+await concurrent.terminate()
 ```
 
 ## Sample
@@ -90,7 +93,7 @@ npm i @bitair/concurrent.js@latest
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-const { factorial } = await concurrent.load('extra-bigint')
+const { factorial } = await concurrent.module('extra-bigint').load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -102,7 +105,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.12",
+    "@bitair/concurrent.js": "^0.5.13",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -117,8 +120,8 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.12/mod.ts'
-const { factorial } = await concurrent.load(new URL('services/index.ts', import.meta.url))
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.13/mod.ts'
+const { factorial } = await concurrent.module(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -163,7 +166,7 @@ deno run --allow-read --allow-net index.ts
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-const { factorial } = await concurrent.load(new URL('services/index.js', import.meta.url))
+const { factorial } = await concurrent.module(new URL('services/index.js', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -207,7 +210,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.12",
+    "@bitair/concurrent.js": "^0.5.13",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -231,17 +234,16 @@ npx esbuild src/app.js --target=es6 --define:process.env.BASE_URL=\"http://127.0
 
 # Parallelism
 
-For achieving parallelism the load method accepts a flag named `parallel`:
-
 ```js
 import { concurrent } from '@bitair/concurrent.js'
 
-concurrent.config({ maxThreads: 16 }) // Instead of a hardcoded value use os.availableParallelism() in Node.js v19.4.0 or later
+const extraBigint = concurrent.module('extra-bigint')
 
-const { factorial } = await concurrent.load('extra-bigint', { parallel: true })
+concurrent.config({ maxThreads: 16 }) // Instead of a hardcoded value use os.availableParallelism() in Node.js v19.4.0 or later
 
 const ops = []
 for (let i = 0; i <= 100; i++) {
+  const { factorial } = await extraBigint.load()
   ops.push(factorial(i))
 }
 
@@ -251,47 +253,17 @@ const results = await Promise.all(ops)
 await concurrent.terminate()
 ```
 
-## Instance disposal
-
-In parallelism, instances must be explicitly disposed:
-
-```js
-const ops = []
-for (let i = 0; i <= 100; i++) {
-  const obj = await new SampleObject()
-  const op = obj.sampleMethod().then((result) => {
-    await concurrent.dispose(obj)
-    return result
-  })
-  ops.push(op)
-}
-
-const results = await Promise.all(ops)
-```
-
 # API
 
 ```ts
-concurrent.load<T>(src: string | URL, settings: ExecutionSettings) : T
+concurrent.load<T>(src: string | URL) : T
 ```
 
-Imports and prepares a module for being loaded into workers. Loading would happen on class instantiation and function invocation. In Concurrent.js every instantiation of an imported class and every invocation of an imported function would be run by a separate worker if available or by a shared worker if not (provided that the parallel flag is off).
-
-Note that all members and dependencies of an in-worker instance would be run on the same worker that the instance has been instantiated on. This would guarantee that an in-worker instance would be run exactly like an out-worker instance, except that an in-worker instance has no access to the main thread's global values. This is also correct for running an imported function inside a worker.
+Loads the specified module into a worker.
 
 - `src: string`
 
   The path or URL of the loading module. The value of this parameter must be either an absolute path/URL or a package name.
-
-- `settings: ExecutionSettings`
-
-  - `settings.parallel [default=false]`
-
-    Setting it would prevent the load method to share a worker between instances and function calls.
-
-  - `settings.timeout [default=Infinity] [Not implemented]`
-
-    Setting it would prevent a parallel operation to occupy a thread forever. By reaching the timeout, Concurrent.js would terminate and re-instantiate the thread and also would throw a timeout exception. The setting can only be used when the parallel flag is on.
 
 ```ts
 concurrent.config(settings: ConcurrencySettings): void
@@ -309,17 +281,13 @@ Configs the global settings of Concurrent.js
 
     The max number of available threads to be spawned.
 
-  - `settings.threadAllocationTimeout: number | typeof Infinity [default=Infinity]`
-
-    Number of seconds that an operation would be waiting for a thread allocation. By reaching the timeout an exception would be thrown.
-
   - `settings.threadIdleTimeout: number | typeof Infinity [default=Infinity]`
 
     Number of minutes that Concurrent.js would be waiting before terminating an idle thread.
 
   - `settings.minThreads: number [default=0]`
 
-    The minimum number of threads that should keep when terminating the idle threads.
+    The number of threads that must be created when Concurrent.js starts and also kept from being terminated when are idle.
 
 ```ts
 concurrent.terminate(force?: boolean): Promise<void>

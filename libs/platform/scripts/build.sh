@@ -5,9 +5,8 @@ source "../../scripts/utils.sh"
 function build {
   local file=$1
   local outfile=$2
-  local params=$3
 
-  bundle node esm $file $outfile --sourcemap $params
+  bundle node esm $file $outfile --sourcemap
 }
 
 rm -rf build

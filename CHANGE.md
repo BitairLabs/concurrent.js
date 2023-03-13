@@ -1,3 +1,12 @@
+## v0.5.13
+
+- Unit tests are implemented for some of the platform core classes.
+- The mechanism of loading a module is simplified.
+- The mechanism of allocating a thread is simplified.
+- Exclusive thread allocation is removed.
+- The dispose method is removed.
+- Test coverage tool is added.
+
 ## v0.5.12
 
 - Module loader is improved.
