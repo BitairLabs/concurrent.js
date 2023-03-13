@@ -256,10 +256,16 @@ await concurrent.terminate()
 # API
 
 ```ts
-concurrent.load<T>(src: string | URL) : T
+concurrent.module<T>(moduleSrc: string | URL): IConcurrentModule<T>
+```
+Creates a concurrent module.
+
+
+```ts
+IConcurrentModule<T>.load() : Promise<T>
 ```
 
-Loads the specified module into a worker.
+Loads the module into a worker.
 
 - `src: string`
 
@@ -269,7 +275,7 @@ Loads the specified module into a worker.
 concurrent.config(settings: ConcurrencySettings): void
 ```
 
-Configs the global settings of Concurrent.js
+Configs the global settings of Concurrent.js.
 
 - `settings: ConcurrencySettings`
 
@@ -293,7 +299,7 @@ Configs the global settings of Concurrent.js
 concurrent.terminate(force?: boolean): Promise<void>
 ```
 
-Terminates Concurrent.js
+Terminates Concurrent.js.
 
 - `force?: boolean [Not implemented]`
 
