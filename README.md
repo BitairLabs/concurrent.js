@@ -258,18 +258,18 @@ await concurrent.terminate()
 ```ts
 concurrent.module<T>(moduleSrc: string | URL): IConcurrentModule<T>
 ```
+
 Creates a concurrent module.
 
+- `src: string`
+
+  The path or URL of the module. Its value must be either an absolute path/URL or a package name.
 
 ```ts
 IConcurrentModule<T>.load() : Promise<T>
 ```
 
 Loads the module into a worker.
-
-- `src: string`
-
-  The path or URL of the loading module. The value of this parameter must be either an absolute path/URL or a package name.
 
 ```ts
 concurrent.config(settings: ConcurrencySettings): void
