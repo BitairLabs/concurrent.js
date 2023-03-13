@@ -1,6 +1,6 @@
 import { concurrent } from '../../../../mod.ts'
 
-const { factorial } = await concurrent.load(new URL('./services/index.ts', import.meta.url))
+const { factorial } = await concurrent.module(new URL('./services/index.ts', import.meta.url)).load()
 
 const progress = setInterval(() => console.log('⯀'), 100)
 

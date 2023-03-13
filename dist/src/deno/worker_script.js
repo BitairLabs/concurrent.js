@@ -1,4 +1,23 @@
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  return value;
+};
+
 // libs/platform/src/core/constants.ts
+var TaskType = /* @__PURE__ */ ((TaskType2) => {
+  TaskType2[TaskType2["InvokeFunction"] = 1] = "InvokeFunction";
+  TaskType2[TaskType2["GetStaticProperty"] = 2] = "GetStaticProperty";
+  TaskType2[TaskType2["SetStaticProperty"] = 3] = "SetStaticProperty";
+  TaskType2[TaskType2["InvokeStaticMethod"] = 4] = "InvokeStaticMethod";
+  TaskType2[TaskType2["InstantiateObject"] = 5] = "InstantiateObject";
+  TaskType2[TaskType2["GetInstanceProperty"] = 6] = "GetInstanceProperty";
+  TaskType2[TaskType2["SetInstanceProperty"] = 7] = "SetInstanceProperty";
+  TaskType2[TaskType2["InvokeInstanceMethod"] = 8] = "InvokeInstanceMethod";
+  TaskType2[TaskType2["DisposeObject"] = 9] = "DisposeObject";
+  return TaskType2;
+})(TaskType || {});
 var ErrorMessage = {
   InternalError: { code: 500, text: "Internal error has occurred." },
   InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{0}'." },
@@ -9,7 +28,9 @@ var ErrorMessage = {
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
   MethodAssignment: { code: 509, text: "Can't assign a method." },
-  NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." }
+  NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." },
+  ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
+  ThreadTerminated: { code: 512, text: "Thread has been terminated." }
 };
 var ValueType = {
   undefined: 1,
@@ -21,14 +42,19 @@ var ValueType = {
   function: 7,
   object: 8
 };
-var SYMBOL = {
-  DISPOSE: Symbol("DISPOSE")
+var defaultThreadPoolSettings = {
+  maxThreads: 1,
+  minThreads: 0,
+  threadIdleTimeout: Infinity
 };
+var defaultConcurrencySettings = Object.assign(
+  {
+    disabled: false
+  },
+  defaultThreadPoolSettings
+);
 
 // libs/platform/src/core/utils.ts
-function isFunction(val) {
-  return typeof val === "function";
-}
 function isSymbol(val) {
   return typeof val === "symbol";
 }
@@ -51,9 +77,39 @@ function getProperties(obj) {
         }
       }
     }
-    obj = isFunction(obj) ? Reflect.get(obj, "__proto__") : Reflect.getPrototypeOf(obj);
+    obj = Reflect.getPrototypeOf(obj);
   }
   return map;
+}
+function createObject(properties) {
+  const obj = {};
+  for (const key in properties) {
+    if (Object.prototype.hasOwnProperty.call(properties, key)) {
+      const type = properties[key];
+      const defaultValue = (() => {
+        switch (type) {
+          case 2:
+            return false;
+          case 3:
+            return 0;
+          case 4:
+            return BigInt("0");
+          case 5:
+            return "";
+          case 6:
+            return Symbol();
+          case 7:
+            return new Function();
+          case 8:
+            return new Object();
+          default:
+            return void 0;
+        }
+      })();
+      Reflect.set(obj, key, defaultValue);
+    }
+  }
+  return obj;
 }
 
 // libs/platform/src/core/error.ts
@@ -65,6 +121,57 @@ var ConcurrencyError = class extends Error {
     this.code = code;
   }
 };
+
+// libs/platform/src/core/task.ts
+var Task = class {
+  constructor(type, data) {
+    this.type = type;
+    this.data = data;
+    if (!TaskType[type])
+      throw new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
+  }
+};
+
+// libs/platform/src/core/threaded_object.ts
+var _ThreadedObject = class {
+  constructor(thread, id, target) {
+    this.thread = thread;
+    this.id = id;
+    this.target = target;
+  }
+  static async disposeObject(id, thread) {
+    const task = new Task(9 /* DisposeObject */, [id]);
+    await thread.run(task);
+  }
+  static async create(thread, moduleSrc, exportName, ctorArgs) {
+    const task = new Task(5 /* InstantiateObject */, [moduleSrc, exportName, ctorArgs]);
+    const [id, properties] = await thread.run(task);
+    const obj = new _ThreadedObject(thread, id, createObject(properties));
+    this.objectRegistry.register(obj, { id, threadRef: new WeakRef(thread) }, obj);
+    return obj;
+  }
+  async getProperty(propName) {
+    const task = new Task(6 /* GetInstanceProperty */, [this.id, propName]);
+    const result = await this.thread.run(task);
+    return result;
+  }
+  async setProperty(propName, value) {
+    const task = new Task(7 /* SetInstanceProperty */, [this.id, propName, value]);
+    const result = await this.thread.run(task);
+    return result;
+  }
+  async invoke(methodName, args) {
+    const task = new Task(8 /* InvokeInstanceMethod */, [this.id, methodName, args]);
+    const result = await this.thread.run(task);
+    return result;
+  }
+};
+var ThreadedObject = _ThreadedObject;
+__publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, threadRef }) => {
+  const thread = threadRef.deref();
+  if (thread)
+    _ThreadedObject.disposeObject(id, thread).finally();
+}));
 
 // libs/platform/src/core/worker_manager.ts
 var WorkerManager = class {

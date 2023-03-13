@@ -1,3 +1,5 @@
+import type { ThreadPoolSettings } from '../index.js'
+
 export enum ThreadMessageType {
   RunTask = 1,
   ReadTaskResult
@@ -25,7 +27,9 @@ export const ErrorMessage = {
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: 'Thread allocation failed due to timeout.' },
   MethodAssignment: { code: 509, text: "Can't assign a method." },
-  NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." }
+  NonFunctionLoad: { code: 510, text: "Can't load an export of type '%{0}'." },
+  ThreadPoolTerminated: { code: 511, text: 'Thread pool has been terminated.' },
+  ThreadTerminated: { code: 512, text: 'Thread has been terminated.' }
 }
 
 export const ValueType = {
@@ -39,6 +43,15 @@ export const ValueType = {
   object: 8
 }
 
-export const SYMBOL = {
-  DISPOSE: Symbol('DISPOSE')
+export const defaultThreadPoolSettings: ThreadPoolSettings = {
+  maxThreads: 1,
+  minThreads: 0,
+  threadIdleTimeout: Infinity
 }
+
+export const defaultConcurrencySettings = Object.assign(
+  {
+    disabled: false
+  },
+  defaultThreadPoolSettings
+)

@@ -11,8 +11,12 @@ export function sleep(seconds: number | undefined = 0) {
   })
 }
 
-export function isFunction(val: unknown) {
-  return typeof val === 'function'
+export function isBoolean(val: unknown) {
+  return typeof val === 'boolean'
+}
+
+export function isNumber(val: unknown) {
+  return typeof val === 'number'
 }
 
 export function isString(val: unknown) {
@@ -23,6 +27,10 @@ export function isSymbol(val: unknown) {
   return typeof val === 'symbol'
 }
 
+export function isFunction(val: unknown) {
+  return typeof val === 'function'
+}
+
 export function format(str: string, args: unknown[]) {
   for (let i = 0; i < args.length; i++) {
     str = str.replace(`%{${i}}`, args[i] as string)
@@ -31,22 +39,17 @@ export function format(str: string, args: unknown[]) {
 }
 
 export function getNumber(val: unknown): number | undefined {
-  if (val === Infinity) return val
-  const parsed = parseFloat(val as string)
-  return !Number.isNaN(parsed) ? parsed : undefined
+  val = isString(val)
+    ? (val as string).indexOf('.') !== -1
+      ? parseFloat(val as string)
+      : parseInt(val as string)
+    : val
+
+  return !isNumber(val) || Number.isNaN(val) ? undefined : (val as number)
 }
 
 export function getBoolean(val: unknown): boolean | undefined {
-  return val === false || val === true ? val : undefined
-}
-
-export function getCollectionItem<T>(index: number, list: Iterable<T>) {
-  let i = 0
-  for (const item of list) {
-    if (index === i) return item
-    else i += 1
-  }
-  return undefined
+  return !isBoolean(val) ? undefined : (val as boolean)
 }
 
 export function getProperties(obj: unknown) {
@@ -63,7 +66,7 @@ export function getProperties(obj: unknown) {
         }
       }
     }
-    obj = isFunction(obj) ? Reflect.get(obj, '__proto__') : Reflect.getPrototypeOf(obj)
+    obj = Reflect.getPrototypeOf(obj)
   }
 
   return map
@@ -77,14 +80,12 @@ export function createObject(properties: Dict<number>) {
       const type = properties[key] as number
       const defaultValue = (() => {
         switch (type) {
-          case 1:
-            return undefined
           case 2:
             return false
           case 3:
             return 0
           case 4:
-            return BigInt('0n')
+            return BigInt('0')
           case 5:
             return ''
           case 6:

@@ -1,4 +1,3 @@
-build
 node_modules
-libs/platform/src/browser/worker_script.js*
-libs/platform/src/node/worker_script.js*
+build
+coverage
