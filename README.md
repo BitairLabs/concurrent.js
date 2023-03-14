@@ -1,42 +1,27 @@
+[[CHANGE LOG]](./CHANGE.md) [[STAR HISTORY]](https://star-history.com/#bitair-org/concurrent.js) [[CHANNEL]](https://www.reddit.com/r/concurrentjs/) [[DONATE]](https://donate.depay.com/72pFCdavyPyVZ0XALzLVC)
+
 # Intro
 
-At the highest level of its design, Concurrent.js is a module loader like `require` and `import`, but instead of loading a module into the main thread, it loads the module into a worker. It injects the concurrent behavior into the imported classes and functions so they can be used as usual. Concurrent.js works on Node.js, Deno, and web browsers.
-
-Important notes
-
-- This is a helper library not a new implementation of Web Workers.
-- This is an early version of the library and must not be used in a real project.
+At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a worker. It injects the concurrency behavior into imported functions and classes so they can be used as usual. Concurrent.js works on web browsers, Node.js, and Deno.
 
 # Features
 
-- [x] Supporting Node.js
-- [x] Supporting browser
-- [x] Supporting Deno
-- [x] Executing JavaScript (ECMAScript & CommonJS)
-- [ ] Executing TypeScript
-- [ ] Executing WebAssembly
-- [x] Accessing exported functions
-- [x] Accessing exported classes
-  - [x] Instantiation
-  - [x] Instance members
-    - [x] Fields
-    - [x] Getters and setters
-    - [x] Methods
-  - [x] Static members
-    - [x] Fields
-    - [x] Getters and setters
-    - [x] Methods
+- [x] Platform support
+  - [x] Web browsers
+  - [x] Node.js
+  - [x] Deno
+- Language support
+  - [x] JavaScript (ECMAScript & CommonJS)
+  - [ ] WebAssembly
+  - [ ] TypeScript (Server-side)
+  - [ ] C (Server-side)
+  - [ ] Rust (Server-side)
+  - [ ] Python (Server-side)
 - [x] Parallel execution
 - [ ] Reactive concurrency
-  - [ ] Inter-worker communication
-  - [ ] Event sourcing
-  - [ ] Data sharing
-- [ ] Dependency injection
+- [ ] Inter-worker data sharing
+- [ ] Multithreaded dependency resolver
 - [ ] Sandboxing
-- [ ] Language interoperability (Server-side)
-  - [ ] C
-  - [ ] Rust
-  - [ ] Python
 
 # Technical facts
 
@@ -60,19 +45,19 @@ bash hello_world.sh
 # Usage
 
 ```js
-// load a module into a worker
-const { SampleObject, sampleFunction } = await concurrent.module('sample-module').load()
+// import and load a module into a worker
+const { SampleObject, sampleFunction } = await concurrent.import('sample-module').load()
 
-// access a function
+// run a function
 const result = await sampleFunction(/*...args*/) // call the function
 
-// access a class
+// run a class (instance members)
 const obj = await new SampleObject(/*...args*/) // instantiate
 const value = await obj.sampleProp // get a field or getter
 await ((obj.sampleProp = 1), obj.sampleProp) // set a field or setter
 const result = await obj.sampleMethod(/*...args*/) // call a method
 
-// access static members of a class
+// run a class (static members)
 const value = await SampleObject.sampleStaticProp // get a static field or getter
 await ((SampleObject.sampleStaticProp = 1), SampleObject.sampleStaticProp) // set a static field or setter
 const result = await SampleObject.sampleStaticMethod(/*...args*/) // call a static method
@@ -93,7 +78,7 @@ npm i @bitair/concurrent.js@latest
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-const { factorial } = await concurrent.module('extra-bigint').load()
+const { factorial } = await concurrent.import('extra-bigint').load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -105,7 +90,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.13",
+    "@bitair/concurrent.js": "^0.5.14",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -120,8 +105,8 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.13/mod.ts'
-const { factorial } = await concurrent.module(new URL('services/index.ts', import.meta.url)).load()
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.14/mod.ts'
+const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -166,7 +151,7 @@ deno run --allow-read --allow-net index.ts
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-const { factorial } = await concurrent.module(new URL('services/index.js', import.meta.url)).load()
+const { factorial } = await concurrent.import(new URL('services/index.js', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
 await concurrent.terminate()
@@ -210,7 +195,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.13",
+    "@bitair/concurrent.js": "^0.5.14",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -237,7 +222,7 @@ npx esbuild src/app.js --target=es6 --define:process.env.BASE_URL=\"http://127.0
 ```js
 import { concurrent } from '@bitair/concurrent.js'
 
-const extraBigint = concurrent.module('extra-bigint')
+const extraBigint = concurrent.import('extra-bigint')
 
 concurrent.config({ maxThreads: 16 }) // Instead of a hardcoded value use os.availableParallelism() in Node.js v19.4.0 or later
 
@@ -256,14 +241,14 @@ await concurrent.terminate()
 # API
 
 ```ts
-concurrent.module<T>(moduleSrc: string | URL): IConcurrentModule<T>
+concurrent.import<T>(moduleSrc: string | URL): IConcurrentModule<T>
 ```
 
-Creates a concurrent module.
+Imports and prepares the module for being loaded into workers.
 
 - `src: string`
 
-  The path or URL of the module. Its value must be either an absolute path/URL or a package name.
+  The path or URL of the module. Must be either an absolute path/URL or a package name. Note that only top level functions and classes would be imported.
 
 ```ts
 IConcurrentModule<T>.load() : Promise<T>
