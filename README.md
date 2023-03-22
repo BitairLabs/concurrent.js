@@ -90,7 +90,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.14",
+    "@bitair/concurrent.js": "^0.5.15",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -105,7 +105,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.14/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.15/mod.ts'
 const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
@@ -195,7 +195,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.14",
+    "@bitair/concurrent.js": "^0.5.15",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -292,4 +292,4 @@ Terminates Concurrent.js.
 
 # License
 
-[MIT License](README.md)
+[MIT License](./LICENSE)

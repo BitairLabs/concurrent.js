@@ -157,10 +157,6 @@ var _ThreadedObject = class {
     this.id = id;
     this.target = target;
   }
-  static async disposeObject(id, thread) {
-    const task = new Task(9 /* DisposeObject */, [id]);
-    await thread.run(task);
-  }
   static async create(thread, moduleSrc, exportName, ctorArgs) {
     const task = new Task(5 /* InstantiateObject */, [moduleSrc, exportName, ctorArgs]);
     const [id, properties] = await thread.run(task);
@@ -187,8 +183,10 @@ var _ThreadedObject = class {
 var ThreadedObject = _ThreadedObject;
 __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, threadRef }) => {
   const thread = threadRef.deref();
-  if (thread)
-    _ThreadedObject.disposeObject(id, thread).finally();
+  if (thread) {
+    const task = new Task(9 /* DisposeObject */, [id]);
+    thread.run(task).finally();
+  }
 }));
 
 // libs/platform/src/core/worker_manager.ts

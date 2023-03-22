@@ -21,7 +21,7 @@ export declare interface IConcurrencyError {
   message: string
 }
 
-export declare type InvokeFunctionData = [moduleSrc: string, functionName: string, args: unknown[]]
+export declare type InvokeFunctionData = [moduleSrc: string, exportName: string, args: unknown[]]
 export declare type GetStaticPropertyData = [moduleSrc: string, exportName: string, propName: string]
 export declare type SetStaticPropertyData = [moduleSrc: string, exportName: string, propName: string, value: unknown]
 export declare type InvokeStaticMethodData = [

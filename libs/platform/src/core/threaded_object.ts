@@ -18,17 +18,15 @@ declare type ObjectRegistryEntry = {
 }
 
 export class ThreadedObject {
-  static objectRegistry = new FinalizationRegistry(({ id, threadRef }: ObjectRegistryEntry) => {
+  private static objectRegistry = new FinalizationRegistry(({ id, threadRef }: ObjectRegistryEntry) => {
     const thread = threadRef.deref()
-    if (thread) this.disposeObject(id, thread).finally()
+    if (thread) {
+      const task = new Task<DisposeObjectData>(TaskType.DisposeObject, [id])
+      thread.run(task).finally()
+    }
   })
 
   private constructor(private thread: Thread, private id: number, public target: object) {}
-
-  static async disposeObject(id: number, thread: Thread) {
-    const task = new Task<DisposeObjectData>(TaskType.DisposeObject, [id])
-    await thread.run(task)
-  }
 
   static async create(thread: Thread, moduleSrc: string, exportName: string, ctorArgs: unknown[]) {
     const task = new Task<InstantiateObjectData>(TaskType.InstantiateObject, [moduleSrc, exportName, ctorArgs])

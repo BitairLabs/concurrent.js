@@ -1,10 +1,10 @@
 import { ConcurrentModule } from './concurrent_module.js'
+import { defaultConcurrencySettings } from './constants.js'
 import { ThreadPool } from './thread_pool.js'
 import { getBoolean, getNumber } from './utils.js'
 
 import type { ConcurrencySettings, IConcurrent, IConcurrentModule } from '../index.d.js'
 import type { IWorkerFactory } from './types.js'
-import { defaultConcurrencySettings } from './constants.js'
 
 export class Master implements IConcurrent {
   private settings: ConcurrencySettings

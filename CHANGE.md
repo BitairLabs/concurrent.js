@@ -1,10 +1,14 @@
+## v0.5.15
+
+- New tests are added to the platform lib.
+
 ## v0.5.14
 
 - concurrent.module is renamed to concurrent.import.
 
 ## v0.5.13
 
-- Unit tests are implemented for some of the platform core classes.
+- New tests are added to the platform lib.
 - The mechanism of loading a module is simplified.
 - The mechanism of allocating a thread is simplified.
 - Exclusive thread allocation is removed.

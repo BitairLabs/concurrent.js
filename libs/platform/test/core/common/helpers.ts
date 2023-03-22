@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { defaultThreadPoolSettings, TaskType } from '../../../src/core/constants.js'
+import { Task } from '../../../src/core/task.js'
+import { Thread } from '../../../src/core/thread.js'
+import { ThreadPool } from '../../../src/core/thread_pool.js'
 import { WorkerBase } from '../../../src/core/worker_base.js'
 
 import type { Coroutine } from '../../../src/core/coroutine.js'
-import type { Thread } from '../../../src/core/thread.js'
 import type {
   IWorker,
   WorkerMessageHandler,
@@ -12,10 +15,16 @@ import type {
   IWorkerFactory,
   InstantiateObjectData
 } from '../../../src/core/types.js'
-import { defaultThreadPoolSettings, TaskType } from '../../../src/core/constants.js'
-import { Task } from '../../../src/core/task.js'
-import { ThreadPool } from '../../../src/core/thread_pool.js'
 import type { ThreadPoolSettings } from '../../../src/index.js'
+
+export function sleep(seconds: number | undefined = 0) {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => {
+      clearInterval(timer)
+      resolve(true)
+    }, seconds * 1000)
+  })
+}
 
 export function createSampleValueDict(): Dict<unknown> {
   return {
@@ -58,6 +67,10 @@ export function createWorker() {
     postMessage(_message: unknown) {},
     terminate() {}
   })
+}
+
+export function createThread() {
+  return new Thread(createWorkerFactory())
 }
 
 export function createInstantiateObjectTask() {

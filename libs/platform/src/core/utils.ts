@@ -2,15 +2,6 @@ import { ValueType } from './constants.js'
 
 import type { Dict } from './types.js'
 
-export function sleep(seconds: number | undefined = 0) {
-  return new Promise(resolve => {
-    const timer = setTimeout(() => {
-      clearInterval(timer)
-      resolve(true)
-    }, seconds * 1000)
-  })
-}
-
 export function isBoolean(val: unknown) {
   return typeof val === 'boolean'
 }

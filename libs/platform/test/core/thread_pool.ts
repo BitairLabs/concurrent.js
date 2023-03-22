@@ -10,7 +10,7 @@ import type { ThreadPool } from '../../src/core/thread_pool.js'
 
 let pool: ThreadPool
 
-describe('Testing ThreadPool Class', () => {
+describe('Testing ThreadPool', () => {
   beforeEach(() => {
     pool = createThreadPool()
   })
