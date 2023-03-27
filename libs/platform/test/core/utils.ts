@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 import { expect } from 'chai'
 
 import * as Utils from '../../src/core/utils.js'
-import { SampleObject } from '../sample_services/index.js'
 
 import { ValueType } from '../../src/core/constants.js'
-import { createSampleValueDict } from './common/helpers.js'
+import { createSampleValueDict, SampleObject } from './common/helpers.js'
 
 const SAMPLE_VALUES = createSampleValueDict()
 
@@ -99,22 +99,12 @@ describe('Testing Utils', () => {
 
   it('getProperties', () => {
     expect(Utils.getProperties(new SampleObject())).deep.equal({
-      _baseData: ValueType.undefined,
-      baseData: ValueType.undefined,
-      setBaseData: ValueType.function,
-      getBaseData: ValueType.function,
-      overridableGetBaseData: ValueType.function,
-      setBaseDataAsync: ValueType.function,
-      getBaseDataAsync: ValueType.function,
-      isWorker: ValueType.boolean,
-      _data: ValueType.undefined,
-      data: ValueType.undefined,
-      setData: ValueType.function,
-      getData: ValueType.function,
-      setDataAsync: ValueType.function,
-      getDataAsync: ValueType.function,
-      isPrime: ValueType.function,
-      format: ValueType.function
+      _sampleBaseField: ValueType.boolean,
+      sampleBaseProp: ValueType.undefined,
+      sampleBaseMethod: ValueType.function,
+      _sampleField: ValueType.boolean,
+      sampleProp: ValueType.undefined,
+      sampleMethod: ValueType.function
     })
   })
 

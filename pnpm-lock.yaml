@@ -64,12 +64,21 @@ importers:
       mocha: 10.2.0
       typescript: 4.9.5
 
+  apps/sample/wasm:
+    specifiers:
+      assemblyscript: ^0.27.1
+      typescript: ^4.9.5
+    devDependencies:
+      assemblyscript: 0.27.1
+      typescript: 4.9.5
+
   libs/platform:
     specifiers:
       '@types/chai': ^4.3.4
       '@types/mocha': ^10.0.1
       '@types/node': ^18.11.18
       '@types/sinon': ^10.0.13
+      assemblyscript: ^0.27.1
       c8: ^7.13.0
       chai: ^4.3.7
       esbuild: ^0.17.8
@@ -83,6 +92,7 @@ importers:
       '@types/mocha': 10.0.1
       '@types/node': 18.14.1
       '@types/sinon': 10.0.13
+      assemblyscript: 0.27.1
       c8: 7.13.0
       chai: 4.3.7
       esbuild: 0.17.10
@@ -739,6 +749,16 @@ packages:
     engines: { node: '>=8' }
     dev: true
 
+  /assemblyscript/0.27.1:
+    resolution:
+      { integrity: sha512-0ZS9ujdoSAjuwc+qdZ4PeZy32wFh3U2GVy7/G2dfDr/5i0jOmWY29AaFsiNxDQ7z6MOeTo9YpNLfIqZ1WWzh8A== }
+    engines: { node: '>=16', npm: '>=7' }
+    hasBin: true
+    dependencies:
+      binaryen: 111.0.0-nightly.20230202
+      long: 5.2.1
+    dev: true
+
   /assertion-error/1.1.0:
     resolution:
       { integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw== }
@@ -768,6 +788,12 @@ packages:
     resolution:
       { integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA== }
     engines: { node: '>=8' }
+    dev: true
+
+  /binaryen/111.0.0-nightly.20230202:
+    resolution:
+      { integrity: sha512-aGMDtxmc8zQHzAamyOBvO38n2e/GuXM0dZCJg+IuG2YUQODTqI37XSkAixS8c0wXn2dgLntDMk1VDblKCsy0GA== }
+    hasBin: true
     dev: true
 
   /brace-expansion/1.1.11:
@@ -1701,6 +1727,11 @@ packages:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
+    dev: true
+
+  /long/5.2.1:
+    resolution:
+      { integrity: sha512-GKSNGeNAtw8IryjjkhZxuKB3JzlcLTwjtiQCHKvqQet81I93kXslhDQruGI/QsddO83mcDToBVy7GqGS/zYf/A== }
     dev: true
 
   /loupe/2.3.6:

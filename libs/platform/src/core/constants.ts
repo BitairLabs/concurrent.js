@@ -32,7 +32,15 @@ export const ErrorMessage = {
     text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
   },
   ThreadPoolTerminated: { code: 511, text: 'Thread pool has been terminated.' },
-  ThreadTerminated: { code: 512, text: 'Thread has been terminated.' }
+  ThreadTerminated: { code: 512, text: 'Thread has been terminated.' },
+  UnrecognizedModuleType: {
+    code: 513,
+    text: "A module with an unrecognized type has been passed '%{0}'."
+  },
+  UnexportedFunction: {
+    code: 514,
+    text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  }
 }
 
 export const ValueType = {
@@ -58,3 +66,7 @@ export const defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 )
+
+export enum ModuleExt {
+  WASM = '.wasm'
+}

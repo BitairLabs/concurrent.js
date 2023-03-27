@@ -28,9 +28,20 @@ var ErrorMessage = {
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
   MethodAssignment: { code: 509, text: "Can't assign a method." },
-  NotAccessibleExport: { code: 510, text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported." },
+  NotAccessibleExport: {
+    code: 510,
+    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+  },
   ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
-  ThreadTerminated: { code: 512, text: "Thread has been terminated." }
+  ThreadTerminated: { code: 512, text: "Thread has been terminated." },
+  UnrecognizedModuleType: {
+    code: 513,
+    text: "A module with an unrecognized type has been passed '%{0}'."
+  },
+  UnexportedFunction: {
+    code: 514,
+    text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  }
 };
 var ValueType = {
   undefined: 1,
@@ -111,6 +122,12 @@ function createObject(properties) {
   }
   return obj;
 }
+function isNativeModule(moduleSrc) {
+  if (moduleSrc.endsWith(".wasm" /* WASM */))
+    return false;
+  else
+    return true;
+}
 
 // libs/platform/src/core/error.ts
 var ConcurrencyError = class extends Error {
@@ -173,6 +190,9 @@ __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, 
 
 // libs/platform/src/core/worker_manager.ts
 var WorkerManager = class {
+  constructor(interopHandler) {
+    this.interopHandler = interopHandler;
+  }
   objects = /* @__PURE__ */ new Map();
   lastObjectId = 0;
   async handleMessage(type, data) {
@@ -240,9 +260,13 @@ var WorkerManager = class {
   async invokeFunction(moduleSrc, functionName, args = []) {
     let result, error;
     try {
-      const module = await import(moduleSrc);
-      const method = Reflect.get(module, functionName);
-      result = await method.apply(module.exports, args);
+      if (!isNativeModule(moduleSrc)) {
+        result = await this.interopHandler.run(moduleSrc, functionName, args);
+      } else {
+        const module = await import(moduleSrc);
+        const method = Reflect.get(module, functionName);
+        result = await method.apply(module.exports, args);
+      }
     } catch (err) {
       error = err;
     }
@@ -347,10 +371,43 @@ var WorkerManager = class {
   }
 };
 
+// libs/platform/src/core/interop/wasm.ts
+var WasmInteropHandler = class {
+  constructor(createInstance) {
+    this.createInstance = createInstance;
+  }
+  cache = /* @__PURE__ */ new Map();
+  async run(moduleSrc, functionName, args) {
+    let instance;
+    if (this.cache.has(moduleSrc))
+      instance = this.cache.get(moduleSrc);
+    else {
+      instance = await this.createInstance(moduleSrc);
+      this.cache.set(moduleSrc, instance);
+    }
+    const fn = Reflect.get(instance.exports, functionName);
+    if (!fn)
+      throw new ConcurrencyError(ErrorMessage.UnexportedFunction, functionName, moduleSrc);
+    const result = Reflect.apply(fn, instance.exports, args);
+    return result;
+  }
+};
+
 // libs/platform/src/browser/worker_script.ts
 if (void 0)
-  throw new ConcurrencyError2(Constants.ErrorMessage.NotRunningOnWorker);
-var manager = new WorkerManager();
+  throw new ConcurrencyError(Constants.ErrorMessage.NotRunningOnWorker);
+var wasmInteropHandler = new WasmInteropHandler(async (moduleSrc) => {
+  const { instance } = await WebAssembly.instantiateStreaming(fetch(moduleSrc));
+  return instance;
+});
+var manager = new WorkerManager({
+  run(moduleSrc, functionName, args) {
+    if (moduleSrc.endsWith(".wasm" /* WASM */))
+      return wasmInteropHandler.run(moduleSrc, functionName, args);
+    else
+      throw new ConcurrencyError(ErrorMessage.UnrecognizedModuleType, moduleSrc);
+  }
+});
 onmessage = function(e) {
   const [type, data] = e.data;
   manager.handleMessage(type, data).then((reply) => {

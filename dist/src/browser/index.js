@@ -13,6 +13,7 @@ var __publicField = (obj, key, value) => {
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
+  ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
   ValueType: () => ValueType,
@@ -46,9 +47,20 @@ var ErrorMessage = {
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
   MethodAssignment: { code: 509, text: "Can't assign a method." },
-  NotAccessibleExport: { code: 510, text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported." },
+  NotAccessibleExport: {
+    code: 510,
+    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+  },
   ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
-  ThreadTerminated: { code: 512, text: "Thread has been terminated." }
+  ThreadTerminated: { code: 512, text: "Thread has been terminated." },
+  UnrecognizedModuleType: {
+    code: 513,
+    text: "A module with an unrecognized type has been passed '%{0}'."
+  },
+  UnexportedFunction: {
+    code: 514,
+    text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  }
 };
 var ValueType = {
   undefined: 1,
@@ -71,6 +83,10 @@ var defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 );
+var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
+  ModuleExt2["WASM"] = ".wasm";
+  return ModuleExt2;
+})(ModuleExt || {});
 
 // libs/platform/src/core/utils.ts
 function isBoolean(val) {
@@ -127,6 +143,12 @@ function createObject(properties) {
     }
   }
   return obj;
+}
+function isNativeModule(moduleSrc) {
+  if (moduleSrc.endsWith(".wasm" /* WASM */))
+    return false;
+  else
+    return true;
 }
 
 // libs/platform/src/core/error.ts
@@ -238,14 +260,22 @@ var ConcurrentModule = class {
     this.src = src;
   }
   async load() {
-    const moduleSrc = this.src;
-    const module = await import(this.src);
+    const moduleSrc = this.src.toString();
+    const module = isNativeModule(moduleSrc) ? await import(moduleSrc) : {};
     const thread = await this.pool.getThread();
     const cache = {};
     return new Proxy(module, {
       get(obj, key) {
         const _export = Reflect.get(obj, key);
-        if (!Reflect.has(obj, key))
+        if (key === "then")
+          return;
+        else if (!isNativeModule(moduleSrc)) {
+          if (!Reflect.has(cache, key)) {
+            const threadedFunction = new ThreadedFunction(thread, moduleSrc, key);
+            Reflect.set(cache, key, (...params) => threadedFunction.invoke(params));
+          }
+          return Reflect.get(cache, key);
+        } else if (!Reflect.has(obj, key))
           return;
         else if (!isFunction(_export))
           throw new ConcurrencyError(ErrorMessage.NotAccessibleExport);
@@ -485,7 +515,7 @@ var Master = class {
       this.start();
     const module = this.settings.disabled ? {
       load: () => import(moduleSrc.toString())
-    } : new ConcurrentModule(this.pool, moduleSrc.toString());
+    } : new ConcurrentModule(this.pool, moduleSrc);
     return module;
   }
   async terminate(force) {

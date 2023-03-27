@@ -12,7 +12,7 @@ At the highest level of its design, Concurrent.js is a dynamic module importer l
   - [x] Deno
 - [ ] Language support
   - [x] JavaScript (ECMAScript & CommonJS)
-  - [ ] WebAssembly
+  - [x] WebAssembly
   - [ ] TypeScript (Server-side)
   - [ ] C (Server-side)
   - [ ] Rust (Server-side)
@@ -90,7 +90,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.15",
+    "@bitair/concurrent.js": "^0.6.0",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -105,7 +105,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.5.15/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.6.0/mod.ts'
 const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
@@ -195,7 +195,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.5.15",
+    "@bitair/concurrent.js": "^0.6.0",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -241,14 +241,14 @@ await concurrent.terminate()
 # API
 
 ```ts
-concurrent.import<T>(moduleSrc: string | URL): IConcurrentModule<T>
+concurrent.import<T>(src: URL | string): IConcurrentModule<T>
 ```
 
-Imports and prepares the module for being loaded into workers. Note that only top level functions and classes would be imported.
+Imports and prepares the module for being loaded into workers. Note that only functions and classes can be imported. Importing and accessing classes only works on JavaScript and TypeScript languages.
 
-- `src: string`
+- `src: URL | string`
 
-  The path or URL of the module. Must be either an absolute path/URL or a package name.
+  Source of the module. Must be either a URL or a package name.
 
 ```ts
 IConcurrentModule<T>.load() : Promise<T>
@@ -263,10 +263,6 @@ concurrent.config(settings: ConcurrencySettings): void
 Configs the global settings of Concurrent.js.
 
 - `settings: ConcurrencySettings`
-
-  - `settings.disabled: boolean [default=false]`
-
-    Setting it would disable Concurrent.js without the requirement to change any other code.
 
   - `settings.maxThreads: number [default=1]`
 

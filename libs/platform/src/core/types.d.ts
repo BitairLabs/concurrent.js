@@ -1,3 +1,9 @@
+export interface IInteropHandler {
+  run(moduleSrc: string, functionName: string, args: unknown[]): Promise<unknown>
+}
+
+export declare type InteropHandler = { run(moduleSrc: string, functionName: string, args: unknown[]): Promise<unknown> }
+
 export declare interface IWorkerFactory {
   create(): IWorker
 }
