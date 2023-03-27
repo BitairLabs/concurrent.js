@@ -1,11 +1,12 @@
 import { ErrorMessage, TaskType, ThreadMessageType } from './constants.js'
 import { ConcurrencyError } from './error.js'
-import { getProperties } from './utils.js'
+import { getProperties, isNativeModule } from './utils.js'
 
 import type {
   GetInstancePropertyData,
   GetStaticPropertyData,
   InstantiateObjectResult,
+  InteropHandler,
   InvokeFunctionData,
   InvokeStaticMethodData,
   SetInstancePropertyData,
@@ -20,9 +21,12 @@ import type {
   InvokeInstanceMethodData,
   DisposeObjectData
 } from './types.js'
+
 export class WorkerManager {
   objects: Map<number, unknown> = new Map()
   lastObjectId = 0
+
+  constructor(private interopHandler: InteropHandler) {}
 
   async handleMessage(type: ThreadMessageType, data: unknown) {
     if (type == ThreadMessageType.RunTask) {
@@ -82,9 +86,13 @@ export class WorkerManager {
     let result, error
 
     try {
-      const module = await import(moduleSrc)
-      const method = Reflect.get(module, functionName)
-      result = await method.apply(module.exports, args)
+      if (!isNativeModule(moduleSrc)) {
+        result = await this.interopHandler.run(moduleSrc, functionName, args)
+      } else {
+        const module = await import(moduleSrc)
+        const method = Reflect.get(module, functionName)
+        result = await method.apply(module.exports, args)
+      }
     } catch (err) {
       error = err
     }

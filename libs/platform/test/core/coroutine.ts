@@ -1,13 +1,15 @@
 import { expect } from 'chai'
 
 import { Coroutine } from '../../src/core/coroutine.js'
+import { getLastCoroutineId } from './common/helpers.js'
 
 describe('Testing Coroutine', () => {
   it('creates coroutines', () => {
-    for (let i = 0; i < 10; i++) {
+    const lastCoroutineId = getLastCoroutineId()
+    for (let i = 1; i <= 10; i++) {
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       const coroutine = Coroutine.create(() => {})
-      expect(coroutine.id).equal(i + 1)
+      expect(coroutine.id).equal(i + lastCoroutineId)
     }
   })
 

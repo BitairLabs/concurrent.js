@@ -1,5 +1,5 @@
 {
-  "spec": ["test/**/*.ts"],
+  "spec": ["test/node/**/*.ts", "test/core/**/*.ts"],
   "node-option": [
     "require=tsconfig-paths",
     "loader=ts-node/esm"    

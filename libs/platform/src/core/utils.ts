@@ -1,4 +1,4 @@
-import { ValueType } from './constants.js'
+import { ModuleExt, ValueType } from './constants.js'
 
 import type { Dict } from './types.js'
 
@@ -99,4 +99,9 @@ export function createObject(properties: Dict<number>) {
   }
 
   return obj
+}
+
+export function isNativeModule(moduleSrc: string) {
+  if (moduleSrc.endsWith(ModuleExt.WASM)) return false
+  else return true
 }

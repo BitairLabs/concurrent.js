@@ -1,3 +1,8 @@
+## v0.6.0
+
+- New tests are added to the platform lib.
+- Running WebAssembly modules is implemented.
+
 ## v0.5.15
 
 - New tests are added to the platform lib.

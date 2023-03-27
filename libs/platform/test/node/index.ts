@@ -1,16 +1,18 @@
 import { assert, expect } from 'chai'
 import { cpus } from 'node:os'
-import { ErrorMessage } from '../src/core/constants.js'
-import type { ConcurrencyError } from '../src/core/error.js'
-import { getProperties } from '../src/core/utils.js'
 
-import { concurrent } from '../src/node/index.js'
-
+import { ErrorMessage } from '../../src/core/constants.js'
+import { getProperties } from '../../src/core/utils.js'
+import { concurrent } from '../../src/node/index.js'
 import * as sampleServices from './sample_services/index.js'
+
+import type { ConcurrencyError } from '../../src/core/error.js'
+import type * as wasmServices from '../../../../apps/sample/wasm/build/index.js'
 
 const THREAD_INSTANTIATION_DELAY = 0.5
 const NOT_RUNNING_ON_WORKER = 'Not running on a worker'
-const SERVICES_SRC = new URL('../build/services/index.js', import.meta.url)
+const SERVICES_SRC = new URL('../../build/node/services/index.js', import.meta.url)
+const WASM_SERVICES_SRC = new URL('../../../../apps/sample/wasm/build/index.wasm', import.meta.url)
 
 concurrent.config({
   maxThreads: 2
@@ -20,7 +22,7 @@ const services = await concurrent.import<typeof sampleServices>(SERVICES_SRC).lo
 
 describe('Testing Node.js platform ', () => {
   before(async () => {
-    process.env['BASE_URL'] = new URL('../build/', import.meta.url).href
+    process.env['BASE_URL'] = new URL('../../build/node/', import.meta.url).href
   })
 
   after(async () => {
@@ -54,6 +56,7 @@ describe('Testing Node.js platform ', () => {
 
   it('should invoke an exported function', async () => {
     expect(await services.isPrime(3)).equal(true)
+    expect(await services.isPrime(4)).equal(false)
   })
 
   it('should instantiate an exported class', async () => {
@@ -253,5 +256,10 @@ describe('Testing Node.js platform ', () => {
     expect(await services.isWorker()).false
 
     concurrent.config({ disabled: false })
+  })
+
+  it('should run an exported wasm function', async () => {
+    const services = await concurrent.import<typeof wasmServices>(WASM_SERVICES_SRC).load()
+    expect(await services.add(1, 2)).equal(3)
   })
 })

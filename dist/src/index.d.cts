@@ -3,7 +3,7 @@ export { concurrent }
 
 export declare interface IConcurrent {
   config(settings: Partial<ConcurrencySettings>): void
-  import<T>(moduleSrc: string | URL): IConcurrentModule<T>
+  import<T>(moduleSrc: URL | string): IConcurrentModule<T>
   terminate(force?: boolean): Promise<void>
 }
 

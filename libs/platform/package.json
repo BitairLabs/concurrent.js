@@ -3,13 +3,16 @@
   "scripts": {
     "lint": "npx tsc --noEmit",
     "build": "bash ./scripts/build.sh",
-    "test": "c8 mocha --no-timeout"
+    "test:node": "mocha --no-timeout",
+    "test:deno": "deno test test/deno/index.ts --allow-read --trace-ops",
+    "test": "npm run test:node && npm run test:deno"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "@types/sinon": "^10.0.13",
+    "assemblyscript": "^0.27.1",
     "c8": "^7.13.0",
     "chai": "^4.3.7",
     "esbuild": "^0.17.8",

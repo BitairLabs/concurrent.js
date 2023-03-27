@@ -10,5 +10,11 @@ function build {
 }
 
 rm -rf build
-build src/node/worker_script.ts build/worker_script.js
-build test/sample_services/index.ts build/services/index.js
+build src/node/worker_script.ts build/node/worker_script.js
+build test/node/sample_services/index.ts build/node/services/index.js
+
+build src/deno/index.ts build/deno/index.js
+build src/deno/worker_script.ts build/deno/worker_script.js
+
+cd ../../apps/sample/wasm
+npm run build

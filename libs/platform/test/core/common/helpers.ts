@@ -6,7 +6,7 @@ import { Thread } from '../../../src/core/thread.js'
 import { ThreadPool } from '../../../src/core/thread_pool.js'
 import { WorkerBase } from '../../../src/core/worker_base.js'
 
-import type { Coroutine } from '../../../src/core/coroutine.js'
+import { Coroutine } from '../../../src/core/coroutine.js'
 import type {
   IWorker,
   WorkerMessageHandler,
@@ -101,4 +101,29 @@ export function getThreadPoolThreads(threadPool: ThreadPool) {
 
 export function getThreadPoolSettings(threadPool: ThreadPool) {
   return Reflect.get(threadPool, 'settings') as ThreadPoolSettings[]
+}
+
+export function getLastCoroutineId() {
+  return Reflect.get(Coroutine, 'lastCoroutineId') as number
+}
+class SampleObjectBase {
+  _sampleBaseField = true
+  get sampleBaseProp() {
+    return this._sampleBaseField
+  }
+  set sampleBaseProp(val) {
+    this._sampleBaseField = val
+  }
+  sampleBaseMethod() {}
+}
+
+export class SampleObject extends SampleObjectBase {
+  _sampleField = true
+  get sampleProp() {
+    return this._sampleField
+  }
+  set sampleProp(val) {
+    this._sampleField = val
+  }
+  sampleMethod() {}
 }

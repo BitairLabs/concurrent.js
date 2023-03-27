@@ -1,19 +1,46 @@
 "use strict";
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
 
+// libs/platform/src/node/worker_script.ts
+var import_fs = __toESM(require("fs"), 1);
+var import_node_worker_threads = require("node:worker_threads");
+var import_util = require("util");
+
 // libs/platform/src/core/constants.ts
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
+  ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
   ValueType: () => ValueType,
@@ -47,9 +74,20 @@ var ErrorMessage = {
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
   MethodAssignment: { code: 509, text: "Can't assign a method." },
-  NotAccessibleExport: { code: 510, text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported." },
+  NotAccessibleExport: {
+    code: 510,
+    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+  },
   ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
-  ThreadTerminated: { code: 512, text: "Thread has been terminated." }
+  ThreadTerminated: { code: 512, text: "Thread has been terminated." },
+  UnrecognizedModuleType: {
+    code: 513,
+    text: "A module with an unrecognized type has been passed '%{0}'."
+  },
+  UnexportedFunction: {
+    code: 514,
+    text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  }
 };
 var ValueType = {
   undefined: 1,
@@ -72,6 +110,10 @@ var defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 );
+var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
+  ModuleExt2["WASM"] = ".wasm";
+  return ModuleExt2;
+})(ModuleExt || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -129,6 +171,12 @@ function createObject(properties) {
     }
   }
   return obj;
+}
+function isNativeModule(moduleSrc) {
+  if (moduleSrc.endsWith(".wasm" /* WASM */))
+    return false;
+  else
+    return true;
 }
 
 // libs/platform/src/core/error.ts
@@ -192,6 +240,9 @@ __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, 
 
 // libs/platform/src/core/worker_manager.ts
 var WorkerManager = class {
+  constructor(interopHandler) {
+    this.interopHandler = interopHandler;
+  }
   objects = /* @__PURE__ */ new Map();
   lastObjectId = 0;
   async handleMessage(type, data) {
@@ -259,9 +310,13 @@ var WorkerManager = class {
   async invokeFunction(moduleSrc, functionName, args = []) {
     let result, error;
     try {
-      const module2 = await import(moduleSrc);
-      const method = Reflect.get(module2, functionName);
-      result = await method.apply(module2.exports, args);
+      if (!isNativeModule(moduleSrc)) {
+        result = await this.interopHandler.run(moduleSrc, functionName, args);
+      } else {
+        const module2 = await import(moduleSrc);
+        const method = Reflect.get(module2, functionName);
+        result = await method.apply(module2.exports, args);
+      }
     } catch (err) {
       error = err;
     }
@@ -366,9 +421,42 @@ var WorkerManager = class {
   }
 };
 
+// libs/platform/src/core/interop/wasm.ts
+var WasmInteropHandler = class {
+  constructor(createInstance) {
+    this.createInstance = createInstance;
+  }
+  cache = /* @__PURE__ */ new Map();
+  async run(moduleSrc, functionName, args) {
+    let instance;
+    if (this.cache.has(moduleSrc))
+      instance = this.cache.get(moduleSrc);
+    else {
+      instance = await this.createInstance(moduleSrc);
+      this.cache.set(moduleSrc, instance);
+    }
+    const fn = Reflect.get(instance.exports, functionName);
+    if (!fn)
+      throw new ConcurrencyError(ErrorMessage.UnexportedFunction, functionName, moduleSrc);
+    const result = Reflect.apply(fn, instance.exports, args);
+    return result;
+  }
+};
+
 // libs/platform/src/node/worker_script.ts
-var import_node_worker_threads = require("node:worker_threads");
-var manager = new WorkerManager();
+var wasmInteropHandler = new WasmInteropHandler(async (moduleSrc) => {
+  const wasmBuffer = await (0, import_util.promisify)(import_fs.default.readFile)(moduleSrc.replace("file://", ""));
+  const module2 = await WebAssembly.instantiate(wasmBuffer);
+  return module2.instance;
+});
+var manager = new WorkerManager({
+  run(moduleSrc, functionName, args) {
+    if (moduleSrc.endsWith(".wasm" /* WASM */))
+      return wasmInteropHandler.run(moduleSrc, functionName, args);
+    else
+      throw new ConcurrencyError(ErrorMessage.UnrecognizedModuleType, moduleSrc);
+  }
+});
 if (!import_node_worker_threads.parentPort)
   throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
 import_node_worker_threads.parentPort.on("message", async ([type, data]) => {

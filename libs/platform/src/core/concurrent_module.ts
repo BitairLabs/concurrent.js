@@ -2,18 +2,18 @@ import { ErrorMessage } from './constants.js'
 import { ConcurrencyError } from './error.js'
 import { ThreadedFunction } from './threaded_function.js'
 import { ThreadedObject } from './threaded_object.js'
-import { isFunction } from './utils.js'
+import { isFunction, isNativeModule } from './utils.js'
 
 import type { IConcurrentModule } from '../index.js'
 import type { ThreadPool } from './thread_pool.js'
 import type { Thread } from './thread.js'
 
 export class ConcurrentModule<T> implements IConcurrentModule<T> {
-  constructor(private pool: ThreadPool, private src: string) {}
+  constructor(private pool: ThreadPool, private src: URL | string) {}
 
   async load(): Promise<T> {
-    const moduleSrc = this.src
-    const module = await import(this.src)
+    const moduleSrc = this.src.toString()
+    const module = isNativeModule(moduleSrc) ? await import(moduleSrc) : {}
     const thread = await this.pool.getThread()
 
     const cache = {}
@@ -21,7 +21,14 @@ export class ConcurrentModule<T> implements IConcurrentModule<T> {
       get(obj, key) {
         const _export = Reflect.get(obj, key)
 
-        if (!Reflect.has(obj, key)) return
+        if (key === 'then') return
+        else if (!isNativeModule(moduleSrc)) {
+          if (!Reflect.has(cache, key)) {
+            const threadedFunction = new ThreadedFunction(thread, moduleSrc, key as string)
+            Reflect.set(cache, key, (...params: unknown[]) => threadedFunction.invoke(params))
+          }
+          return Reflect.get(cache, key)
+        } else if (!Reflect.has(obj, key)) return
         else if (!isFunction(_export)) throw new ConcurrencyError(ErrorMessage.NotAccessibleExport)
         else {
           if (!Reflect.has(cache, key)) Reflect.set(cache, key, createThreadedFunction(thread, moduleSrc, _export))
