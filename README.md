@@ -44,12 +44,16 @@ bash hello_world.sh
 
 # Usage
 
+## Running JavaScript
+
 ```js
-// import and load a module into a worker
-const { SampleObject, sampleFunction } = await concurrent.import('sample-module').load()
+import { concurrent } from '@bitair/concurrent.js'
+
+// import and load a JS module into a worker
+const { SampleObject, sampleFunction } = await concurrent.import('sample-js-module.js').load()
 
 // run a function
-const result = await sampleFunction(/*...args*/) // call the function
+const result = await sampleFunction(/*...args*/)
 
 // run a class (instance members)
 const obj = await new SampleObject(/*...args*/) // instantiate
@@ -61,6 +65,20 @@ const result = await obj.sampleMethod(/*...args*/) // call a method
 const value = await SampleObject.sampleStaticProp // get a static field or getter
 await ((SampleObject.sampleStaticProp = 1), SampleObject.sampleStaticProp) // set a static field or setter
 const result = await SampleObject.sampleStaticMethod(/*...args*/) // call a static method
+
+// terminate Concurrent.js
+await concurrent.terminate()
+```
+
+## Running WebAssembly
+```js
+import { concurrent } from '@bitair/concurrent.js'
+
+// import and load a wasm module into a worker
+const { sampleFunction } = await concurrent.import('sample-wasm-module.wasm').load()
+
+// run a function
+const result = await sampleFunction(/*...args*/)
 
 // terminate Concurrent.js
 await concurrent.terminate()
