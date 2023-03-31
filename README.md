@@ -4,6 +4,10 @@
 
 At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a web worker. Concurrent.js helps with non-blocking computation on JavaScript RTEs and facilitates interoperability with other languages in order to achieve better performance and richer computational libraries.
 
+# Sponsors
+
+If you are interested in sponsoring the project, please contact us at [hello@bitair.org](mailto:hello@bitair.org).
+
 # Features
 
 - [x] Platform support
@@ -71,6 +75,7 @@ await concurrent.terminate()
 ```
 
 ## Running WebAssembly
+
 ```js
 import { concurrent } from '@bitair/concurrent.js'
 
