@@ -573,8 +573,7 @@ var BrowserWorker = class extends WorkerBase {
 // libs/platform/src/browser/index.ts
 var concurrent = new Master({
   create: () => {
-    const BASE_URL = process.env["BASE_URL"];
-    const src = new URL("./worker_script.js", BASE_URL ? new URL(BASE_URL) : import.meta.url);
+    const src = new URL("./worker_script.js", import.meta.url);
     return new BrowserWorker(src);
   }
 });
