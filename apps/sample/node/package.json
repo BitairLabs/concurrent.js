@@ -1,8 +1,7 @@
 {
   "scripts": {
-    "lint": "npm run prepare && npx tsc --noEmit",
-    "build": "npm run prepare && bash ./scripts/build.sh",
-    "prepare": "bash ./scripts/prepare.sh",
+    "lint": "npx tsc --noEmit",
+    "build": "bash ./scripts/build.sh",    
     "test": "npm run test:cjs && npm run test:esm",
     "test:cjs": "mocha build/test/**/*.js --no-timeout",
     "test:esm": "mocha build/test/**/*.mjs --no-timeout",
@@ -11,7 +10,8 @@
     "start:esm": "node build/src/index.mjs"
   },
   "dependencies": {
-    "extra-bigint": "^1.1.10"
+    "extra-bigint": "^1.1.10",
+    "@bitair/concurrent.js": "^0.6.1"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.2",

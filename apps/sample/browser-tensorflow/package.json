@@ -1,13 +1,14 @@
 {
+  "type": "module",
   "scripts": {
     "lint": "npx tsc --noEmit",
     "build": "bash ./scripts/build.sh",
     "start": "npx http-server static"
   },
   "dependencies": {
-    "http-server": "^14.1.1",
+    "@tensorflow/tfjs": "^4.2.0",
     "@bitair/concurrent.js": "^0.6.1",
-    "extra-bigint": "^1.1.10"
+    "http-server": "^14.1.1"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.2",

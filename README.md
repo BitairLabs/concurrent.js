@@ -2,7 +2,7 @@
 
 # Intro
 
-At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a web worker. Concurrent.js helps with non-blocking computation on JavaScript RTEs and facilitates interoperability with other languages in order to achieve better performance and richer computational libraries.
+At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a background thread. Concurrent.js helps with non-blocking computation on JavaScript RTEs and also facilitates interoperability with other languages in order to achieve better performance and richer computational libraries.
 
 # Sponsors
 
@@ -89,8 +89,21 @@ const result = await sampleFunction(/*...args*/)
 await concurrent.terminate()
 ```
 
-## Sample
+## Projects
+If you have built a project that uses Concurrent.js and you want to list it here, please email its details to [hello@bitair.org](mailto:hello@bitair.org).
 
+- Browser
+  - [Basic usage](./apps/sample/browser/) (Sample)
+  - [Basic interop with WASM](./apps/sample/browser-wasm/) (Sample)
+  - [Integration with Tensorflow](./apps/sample/browser-tensorflow/) (Sample)
+
+- Node
+  - [Basic usage](./apps/sample/node/) (Sample)
+
+- Deno
+  - [Basic usage](./apps/sample/deno/) (Sample)
+
+## Sample
 ### Node.js (ECMAScript)
 
 ```bash
@@ -113,7 +126,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.6.0",
+    "@bitair/concurrent.js": "^0.6.1",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -128,7 +141,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.6.0/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.6.1/mod.ts'
 const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
@@ -218,7 +231,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.6.0",
+    "@bitair/concurrent.js": "^0.6.1",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -230,14 +243,6 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 
 ```bash
 bash ./build.sh && npx http-server static
-```
-
-#### Base URL
-
-Concurrent.js uses the `import.meta.url` property as the base URL to resolve the scripts. It's also possible to provide a custom base URL:
-
-```bash
-npx esbuild src/app.js --target=es6 --define:process.env.BASE_URL=\"http://127.0.0.1:8080/scripts/\" --bundle --format=esm --platform=browser --outfile=static/scripts/main.js
 ```
 
 # Parallelism
@@ -271,7 +276,7 @@ Imports and prepares the module for being loaded into workers. Note that only fu
 
 - `src: URL | string`
 
-  Source of the module. Must be either a URL or a package name.
+  Source of the module. Must be either a URL or a package name. Note that passing a package name is only applicable in Node.js.
 
 ```ts
 IConcurrentModule<T>.load() : Promise<T>
