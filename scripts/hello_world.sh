@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mkdir concurrent.js
 cd concurrent.js
 npm init -y

@@ -1,3 +1,7 @@
+## v0.7.0
+
+- Running C, C++, Go and Rust is implemented.
+
 ## v0.6.1
 
 - Supporting a custom BASE_URL in the browser is dropped.
@@ -7,7 +11,7 @@
 
 - New tests are added to the platform lib.
 - Running WebAssembly modules is implemented.
--
+
 
 ## v0.5.15
 

@@ -17,6 +17,6 @@ export class LinearRegression {
   }
 
   async predict(x: number) {
-    return (await(this.model.predict(tf.tensor2d([x], [1, 1])) as Tensor).data())[0]
+    return (await (this.model.predict(tf.tensor2d([x], [1, 1])) as Tensor).data())[0]
   }
 }

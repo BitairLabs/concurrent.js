@@ -3,7 +3,7 @@ import { cpus } from 'node:os'
 
 import { ErrorMessage } from '../../src/core/constants.js'
 import { getProperties } from '../../src/core/utils.js'
-import { concurrent } from '../../src/node/index.js'
+import { concurrent, ExternFunctionReturnType } from '../../src/node/index.js'
 import * as sampleServices from './sample_services/index.js'
 
 import type { ConcurrencyError } from '../../src/core/error.js'
@@ -13,6 +13,10 @@ const THREAD_INSTANTIATION_DELAY = 0.5
 const NOT_RUNNING_ON_WORKER = 'Not running on a worker'
 const SERVICES_SRC = new URL('../../build/node/services/index.js', import.meta.url)
 const WASM_SERVICES_SRC = new URL('../../../../apps/sample/wasm/build/index.wasm', import.meta.url)
+const C_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/c/lib.so', import.meta.url)
+const CPP_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/cpp/lib.so', import.meta.url)
+const GO_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/go/lib.so', import.meta.url)
+const RUST_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/rust/release/libsample.so', import.meta.url)
 
 concurrent.config({
   maxThreads: 2
@@ -260,6 +264,50 @@ describe('Testing Node.js platform ', () => {
 
   it('should run an exported wasm function', async () => {
     const services = await concurrent.import<typeof wasmServices>(WASM_SERVICES_SRC).load()
+    expect(await services.add(1, 2)).equal(3)
+  })
+
+  it('should run a foreign function form a C shared library', async () => {
+    const services = await concurrent
+      .import<typeof wasmServices>(C_SHARED_LIB_PATH, {
+        extern: {
+          add: ExternFunctionReturnType.Number
+        }
+      })
+      .load()
+    expect(await services.add(1, 2)).equal(3)
+  })
+
+  it('should run a foreign function form a C++ shared library', async () => {
+    const services = await concurrent
+      .import<typeof wasmServices>(CPP_SHARED_LIB_PATH, {
+        extern: {
+          add: ExternFunctionReturnType.Number
+        }
+      })
+      .load()
+    expect(await services.add(1, 2)).equal(3)
+  })
+
+  it('should run a foreign function form a Go shared library', async () => {
+    const services = await concurrent
+      .import<typeof wasmServices>(GO_SHARED_LIB_PATH, {
+        extern: {
+          add: ExternFunctionReturnType.Number
+        }
+      })
+      .load()
+    expect(await services.add(1, 2)).equal(3)
+  })
+
+  it('should run a foreign function form a Rust shared library', async () => {
+    const services = await concurrent
+      .import<typeof wasmServices>(RUST_SHARED_LIB_PATH, {
+        extern: {
+          add: ExternFunctionReturnType.Number
+        }
+      })
+      .load()
     expect(await services.add(1, 2)).equal(3)
   })
 })

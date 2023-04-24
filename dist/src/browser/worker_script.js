@@ -123,7 +123,7 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
     return false;
   else
     return true;

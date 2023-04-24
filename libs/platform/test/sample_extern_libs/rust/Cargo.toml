@@ -1,0 +1,11 @@
+[package]
+name = "sample"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+bench = false
+
+[dependencies]
+libc = "0.2"
