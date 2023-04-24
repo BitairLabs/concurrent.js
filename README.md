@@ -2,7 +2,7 @@
 
 # Intro
 
-At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a background thread. Concurrent.js helps with non-blocking computation on JavaScript RTEs and also facilitates interoperability with other languages in order to achieve better performance and richer computational libraries.
+At the highest level of its design, Concurrent.js is a dynamic module importer like `require` and `import`. But instead of loading a module into the main thread, it loads the module into a background thread. Concurrent.js helps with non-blocking computation on JavaScript RTEs and also provides a foreign function interface to other languages in order to achieve better performance and richer computational libraries.
 
 # Sponsors
 
@@ -16,7 +16,6 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
     - [x] WebAssembly
   - [x] Node.js
     - [x] JavaScript (ECMAScript & CommonJS)
-    - [x] WebAssembly
     - [x] C
     - [x] C++
     - [x] Go
@@ -25,9 +24,9 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
     - [ ] Ruby
     - [x] Rust
     - [ ] TypeScript
+    - [x] WebAssembly
   - [x] Deno
     - [x] JavaScript (ECMAScript & CommonJS)
-    - [x] WebAssembly
     - [ ] C
     - [ ] C++
     - [ ] Go
@@ -36,6 +35,7 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
     - [ ] Ruby
     - [ ] Rust
     - [x] TypeScript
+    - [x] WebAssembly
 - [x] Parallel execution
 - [ ] Reactive concurrency
 - [ ] Inter-worker data sharing
@@ -100,7 +100,7 @@ await concurrent.terminate()
 
 ## Running C, C++, Go and Rust 
 
-This feature requires the [Linker.c package](https://github.com/bitair-org/linker.js/tree/main/libs/linker.c) to be installed.
+This feature requires the [Linker.c package](https://github.com/bitair-org/linker.js) to be manually installed.
 
 ```js
 import { concurrent, ExternFunctionReturnType } from '@bitair/concurrent.js'
