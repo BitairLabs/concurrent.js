@@ -1,9 +1,9 @@
 declare const concurrent: IConcurrent
-export { concurrent }
+export { concurrent, ExternFunctionReturnType }
 
 export declare interface IConcurrent {
   config(settings: Partial<ConcurrencySettings>): void
-  import<T>(moduleSrc: URL | string): IConcurrentModule<T>
+  import<T>(moduleSrc: URL | string, options: ModuleImportOptions): IConcurrentModule<T>
   terminate(force?: boolean): Promise<void>
 }
 
@@ -19,4 +19,17 @@ export declare type ThreadPoolSettings = {
 
 export declare interface IConcurrentModule<T> {
   load: () => Promise<T>
+}
+
+export type ModuleImportOptions = Partial<{
+  extern: {
+    [key: string]: number
+  }
+}>
+
+declare enum ExternFunctionReturnType {
+  ArrayBuffer,
+  Boolean,
+  Number,
+  String
 }

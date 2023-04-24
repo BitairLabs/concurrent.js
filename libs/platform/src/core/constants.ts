@@ -68,5 +68,13 @@ export const defaultConcurrencySettings = Object.assign(
 )
 
 export enum ModuleExt {
-  WASM = '.wasm'
+  WASM = '.wasm',
+  SO = '.so'
+}
+
+export enum ExternFunctionReturnType {
+  ArrayBuffer,
+  Boolean,
+  Number,
+  String
 }

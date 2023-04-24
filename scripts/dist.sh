@@ -35,7 +35,7 @@ function bundle_worker_script {
     ;;
   esac
 
-  bundle $([ $platform == deno ] && echo neutral || echo $platform) $format $file $outfile
+  bundle $([ $platform == deno ] && echo neutral || echo $platform) $format $file $outfile --external:@bitair/*
 }
 
 function build {

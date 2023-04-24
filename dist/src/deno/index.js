@@ -149,7 +149,7 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
     return false;
   else
     return true;
@@ -259,14 +259,16 @@ __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, 
 
 // libs/platform/src/core/concurrent_module.ts
 var ConcurrentModule = class {
-  constructor(pool, src) {
+  constructor(pool, src, options) {
     this.pool = pool;
     this.src = src;
+    this.options = options;
   }
   async load() {
     const moduleSrc = this.src.toString();
     const module = isNativeModule(moduleSrc) ? await import(moduleSrc) : {};
     const thread = await this.pool.getThread();
+    const self = this;
     const cache = {};
     return new Proxy(module, {
       get(obj, key) {
@@ -276,7 +278,12 @@ var ConcurrentModule = class {
         else if (!isNativeModule(moduleSrc)) {
           if (!Reflect.has(cache, key)) {
             const threadedFunction = new ThreadedFunction(thread, moduleSrc, key);
-            Reflect.set(cache, key, (...params) => threadedFunction.invoke(params));
+            Reflect.set(cache, key, (...params) => {
+              if (moduleSrc.endsWith(".so" /* SO */))
+                return threadedFunction.invoke([params, self.options.extern]);
+              else
+                return threadedFunction.invoke(params);
+            });
           }
           return Reflect.get(cache, key);
         } else if (!Reflect.has(obj, key))
@@ -514,12 +521,12 @@ var Master = class {
     if (this.started)
       this.pool.config(this.settings);
   }
-  import(moduleSrc) {
+  import(moduleSrc, options = {}) {
     if (!this.settings.disabled && !this.started)
       this.start();
     const module = this.settings.disabled ? {
       load: () => import(moduleSrc.toString())
-    } : new ConcurrentModule(this.pool, moduleSrc);
+    } : new ConcurrentModule(this.pool, moduleSrc, options);
     return module;
   }
   async terminate(force) {

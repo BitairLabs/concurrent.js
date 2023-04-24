@@ -10,6 +10,7 @@ var __publicField = (obj, key, value) => {
 };
 
 // libs/platform/src/node/worker_script.ts
+import * as LinkerC from "@bitair/linker.c";
 import fs from "fs";
 import { parentPort } from "node:worker_threads";
 import { promisify } from "util";
@@ -18,6 +19,7 @@ import { promisify } from "util";
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
+  ExternFunctionReturnType: () => ExternFunctionReturnType,
   ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
@@ -90,8 +92,16 @@ var defaultConcurrencySettings = Object.assign(
 );
 var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
   ModuleExt2["WASM"] = ".wasm";
+  ModuleExt2["SO"] = ".so";
   return ModuleExt2;
 })(ModuleExt || {});
+var ExternFunctionReturnType = /* @__PURE__ */ ((ExternFunctionReturnType2) => {
+  ExternFunctionReturnType2[ExternFunctionReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["Boolean"] = 1] = "Boolean";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["Number"] = 2] = "Number";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["String"] = 3] = "String";
+  return ExternFunctionReturnType2;
+})(ExternFunctionReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -151,7 +161,7 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
     return false;
   else
     return true;
@@ -399,6 +409,29 @@ var WorkerManager = class {
   }
 };
 
+// libs/platform/src/core/interop/c.ts
+var CInteropHandler = class {
+  constructor(link2) {
+    this.link = link2;
+  }
+  cache = /* @__PURE__ */ new Map();
+  async run(moduleSrc, functionName, args) {
+    const [fnArgs, fnSigs] = args;
+    let lib;
+    if (this.cache.has(moduleSrc))
+      lib = this.cache.get(moduleSrc);
+    else {
+      lib = this.link(moduleSrc, fnSigs);
+      this.cache.set(moduleSrc, lib);
+    }
+    const fn = lib[functionName];
+    if (!fn)
+      throw new ConcurrencyError(ErrorMessage.UnexportedFunction, functionName, moduleSrc);
+    const result = fn(...fnArgs);
+    return Promise.resolve(result);
+  }
+};
+
 // libs/platform/src/core/interop/wasm.ts
 var WasmInteropHandler = class {
   constructor(createInstance) {
@@ -427,10 +460,17 @@ var wasmInteropHandler = new WasmInteropHandler(async (moduleSrc) => {
   const module = await WebAssembly.instantiate(wasmBuffer);
   return module.instance;
 });
+var cInteropHandler = new CInteropHandler(
+  (moduleSrc, functions) => {
+    return LinkerC.link(moduleSrc.replace("file://", ""), functions);
+  }
+);
 var manager = new WorkerManager({
   run(moduleSrc, functionName, args) {
     if (moduleSrc.endsWith(".wasm" /* WASM */))
       return wasmInteropHandler.run(moduleSrc, functionName, args);
+    else if (moduleSrc.endsWith(".so" /* SO */))
+      return cInteropHandler.run(moduleSrc, functionName, args);
     else
       throw new ConcurrencyError(ErrorMessage.UnrecognizedModuleType, moduleSrc);
   }

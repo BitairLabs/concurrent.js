@@ -4,6 +4,19 @@ export interface IInteropHandler {
 
 export declare type InteropHandler = { run(moduleSrc: string, functionName: string, args: unknown[]): Promise<unknown> }
 
+export declare type ExternLibProxy = {
+  [key: string]: (...params: unknown[]) => unknown
+}
+export declare type ExternLibExports = {
+  [key: string]: number
+}
+
+export type ModuleImportOptions = Partial<{
+  extern: {
+    [key: string]: number
+  }
+}>
+
 export declare interface IWorkerFactory {
   create(): IWorker
 }

@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.2.0",
-    "@bitair/concurrent.js": "^0.6.1",
+    "@bitair/concurrent.js": "^0.7.0",
     "http-server": "^14.1.1"
   },
   "devDependencies": {

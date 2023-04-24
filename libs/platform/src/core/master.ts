@@ -4,7 +4,7 @@ import { ThreadPool } from './thread_pool.js'
 import { getBoolean, getNumber } from './utils.js'
 
 import type { ConcurrencySettings, IConcurrent, IConcurrentModule } from '../index.d.js'
-import type { IWorkerFactory } from './types.js'
+import type { IWorkerFactory, ModuleImportOptions } from './types.js'
 
 export class Master implements IConcurrent {
   private settings: ConcurrencySettings
@@ -26,14 +26,14 @@ export class Master implements IConcurrent {
     if (this.started) (this.pool as ThreadPool).config(this.settings)
   }
 
-  import<T>(moduleSrc: URL): IConcurrentModule<T> {
+  import<T>(moduleSrc: URL, options: ModuleImportOptions = {}): IConcurrentModule<T> {
     if (!this.settings.disabled && !this.started) this.start()
 
     const module = this.settings.disabled
       ? {
           load: () => import(moduleSrc.toString())
         }
-      : new ConcurrentModule<T>(this.pool as ThreadPool, moduleSrc)
+      : new ConcurrentModule<T>(this.pool as ThreadPool, moduleSrc, options)
 
     return module
   }

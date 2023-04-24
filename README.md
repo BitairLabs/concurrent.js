@@ -10,17 +10,32 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
 
 # Features
 
-- [x] Platform support
+- [x] Platform/Language support
   - [x] Web browsers
+    - [x] JavaScript (ECMAScript & CommonJS)
+    - [x] WebAssembly
   - [x] Node.js
+    - [x] JavaScript (ECMAScript & CommonJS)
+    - [x] WebAssembly
+    - [x] C
+    - [x] C++
+    - [x] Go
+    - [ ] Java
+    - [ ] Python
+    - [ ] Ruby
+    - [x] Rust
+    - [ ] TypeScript
   - [x] Deno
-- [ ] Language support
-  - [x] JavaScript (ECMAScript & CommonJS)
-  - [x] WebAssembly
-  - [ ] TypeScript (Server-side)
-  - [ ] C (Server-side)
-  - [ ] Rust (Server-side)
-  - [ ] Python (Server-side)
+    - [x] JavaScript (ECMAScript & CommonJS)
+    - [x] WebAssembly
+    - [ ] C
+    - [ ] C++
+    - [ ] Go
+    - [ ] Java
+    - [ ] Python
+    - [ ] Ruby
+    - [ ] Rust
+    - [x] TypeScript
 - [x] Parallel execution
 - [ ] Reactive concurrency
 - [ ] Inter-worker data sharing
@@ -33,7 +48,7 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
 - Creates a worker once and reuses it.
 - Automatically cleans up a worker's memory.
 - Automatically creates and terminates workers.
-- Has no runtime dependency.
+- Has no third-party runtime dependency.
 - Written in TypeScript with the strictest ESNext config.
 - Strictly designed to support strongly-typed programming.
 - Packaged as platform-specific bundles that target ES2020.
@@ -78,32 +93,47 @@ await concurrent.terminate()
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-
-// import and load a wasm module into a worker
 const { sampleFunction } = await concurrent.import('sample-wasm-module.wasm').load()
-
-// run a function
 const result = await sampleFunction(/*...args*/)
+await concurrent.terminate()
+```
 
-// terminate Concurrent.js
+## Running C, C++, Go and Rust 
+
+This feature requires the [Linker.c package](https://github.com/bitair-org/linker.js/tree/main/libs/linker.c) to be installed.
+
+```js
+import { concurrent, ExternFunctionReturnType } from '@bitair/concurrent.js'
+const { sampleFunction } = await concurrent
+  .import('shared-lib.so', {
+    extern: {
+      sampleFunction: ExternFunctionReturnType.Number
+    }
+  })
+  .load()
+const result = await sampleFunction(/*...args*/)
 await concurrent.terminate()
 ```
 
 ## Projects
+
 If you have built a project that uses Concurrent.js and you want to list it here, please email its details to [hello@bitair.org](mailto:hello@bitair.org).
 
 - Browser
+
   - [Basic usage](./apps/sample/browser/) (Sample)
   - [Basic interop with WASM](./apps/sample/browser-wasm/) (Sample)
   - [Integration with Tensorflow](./apps/sample/browser-tensorflow/) (Sample)
 
 - Node
+
   - [Basic usage](./apps/sample/node/) (Sample)
 
 - Deno
   - [Basic usage](./apps/sample/deno/) (Sample)
 
 ## Sample
+
 ### Node.js (ECMAScript)
 
 ```bash
@@ -126,7 +156,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.6.1",
+    "@bitair/concurrent.js": "^0.7.0",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -141,7 +171,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.6.1/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.7.0/mod.ts'
 const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
@@ -231,7 +261,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.6.1",
+    "@bitair/concurrent.js": "^0.7.0",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -269,7 +299,7 @@ await concurrent.terminate()
 # API
 
 ```ts
-concurrent.import<T>(src: URL | string): IConcurrentModule<T>
+concurrent.import<T>(src: URL | string, options?: ModuleImportOptions): IConcurrentModule<T>
 ```
 
 Imports and prepares the module for being loaded into workers. Note that only functions and classes can be imported. Importing and accessing classes only works on JavaScript and TypeScript languages.
@@ -277,6 +307,26 @@ Imports and prepares the module for being loaded into workers. Note that only fu
 - `src: URL | string`
 
   Source of the module. Must be either a URL or a package name. Note that passing a package name is only applicable in Node.js.
+
+- `options?: ModuleImportOptions`
+
+  - `ModuleImportOptions`
+    ```ts
+    type ModuleImportOptions = Partial<{
+      extern: {
+        [key: string]: ExternFunctionReturnType
+      }
+    }>
+    ```
+    - `ExternFunctionReturnType`
+      ```ts
+      enum ExternFunctionReturnType {
+        ArrayBuffer,
+        Boolean,
+        Number,
+        String
+      }
+      ```
 
 ```ts
 IConcurrentModule<T>.load() : Promise<T>

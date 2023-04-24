@@ -13,6 +13,7 @@ var __publicField = (obj, key, value) => {
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
+  ExternFunctionReturnType: () => ExternFunctionReturnType,
   ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
@@ -85,8 +86,16 @@ var defaultConcurrencySettings = Object.assign(
 );
 var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
   ModuleExt2["WASM"] = ".wasm";
+  ModuleExt2["SO"] = ".so";
   return ModuleExt2;
 })(ModuleExt || {});
+var ExternFunctionReturnType = /* @__PURE__ */ ((ExternFunctionReturnType2) => {
+  ExternFunctionReturnType2[ExternFunctionReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["Boolean"] = 1] = "Boolean";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["Number"] = 2] = "Number";
+  ExternFunctionReturnType2[ExternFunctionReturnType2["String"] = 3] = "String";
+  return ExternFunctionReturnType2;
+})(ExternFunctionReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -146,7 +155,7 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
     return false;
   else
     return true;
