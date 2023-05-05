@@ -149,10 +149,16 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
     return false;
   else
     return true;
+}
+function isExternModule(moduleSrc) {
+  if (moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
+    return true;
+  else
+    return false;
 }
 
 // libs/platform/src/core/error.ts
@@ -279,7 +285,7 @@ var ConcurrentModule = class {
           if (!Reflect.has(cache, key)) {
             const threadedFunction = new ThreadedFunction(thread, moduleSrc, key);
             Reflect.set(cache, key, (...params) => {
-              if (moduleSrc.endsWith(".so" /* SO */))
+              if (isExternModule(moduleSrc))
                 return threadedFunction.invoke([params, self.options.extern]);
               else
                 return threadedFunction.invoke(params);

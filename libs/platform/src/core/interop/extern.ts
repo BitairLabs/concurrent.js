@@ -3,7 +3,7 @@ import { ConcurrencyError } from '../error.js'
 
 import type { ExternLibProxy, ExternLibExports, IInteropHandler } from '../types.js'
 
-export class CInteropHandler implements IInteropHandler {
+export class ExternInteropHandler implements IInteropHandler {
   constructor(private link: (moduleSrc: string, functions: ExternLibExports) => ExternLibProxy) {}
 
   private cache: Map<string, ExternLibProxy> = new Map()

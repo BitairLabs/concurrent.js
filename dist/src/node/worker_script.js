@@ -10,7 +10,7 @@ var __publicField = (obj, key, value) => {
 };
 
 // libs/platform/src/node/worker_script.ts
-import * as LinkerC from "@bitair/linker.c";
+import { link } from "@bitair/linker.js";
 import fs from "fs";
 import { parentPort } from "node:worker_threads";
 import { promisify } from "util";
@@ -19,7 +19,7 @@ import { promisify } from "util";
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
-  ExternFunctionReturnType: () => ExternFunctionReturnType,
+  ExternReturnType: () => ExternReturnType,
   ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
@@ -93,15 +93,16 @@ var defaultConcurrencySettings = Object.assign(
 var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
   ModuleExt2["WASM"] = ".wasm";
   ModuleExt2["SO"] = ".so";
+  ModuleExt2["PY"] = ".py";
   return ModuleExt2;
 })(ModuleExt || {});
-var ExternFunctionReturnType = /* @__PURE__ */ ((ExternFunctionReturnType2) => {
-  ExternFunctionReturnType2[ExternFunctionReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Boolean"] = 1] = "Boolean";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Number"] = 2] = "Number";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["String"] = 3] = "String";
-  return ExternFunctionReturnType2;
-})(ExternFunctionReturnType || {});
+var ExternReturnType = /* @__PURE__ */ ((ExternReturnType2) => {
+  ExternReturnType2[ExternReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
+  ExternReturnType2[ExternReturnType2["Boolean"] = 1] = "Boolean";
+  ExternReturnType2[ExternReturnType2["Number"] = 2] = "Number";
+  ExternReturnType2[ExternReturnType2["String"] = 3] = "String";
+  return ExternReturnType2;
+})(ExternReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -161,10 +162,16 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
     return false;
   else
     return true;
+}
+function isExternModule(moduleSrc) {
+  if (moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
+    return true;
+  else
+    return false;
 }
 
 // libs/platform/src/core/error.ts
@@ -409,8 +416,8 @@ var WorkerManager = class {
   }
 };
 
-// libs/platform/src/core/interop/c.ts
-var CInteropHandler = class {
+// libs/platform/src/core/interop/extern.ts
+var ExternInteropHandler = class {
   constructor(link2) {
     this.link = link2;
   }
@@ -460,16 +467,14 @@ var wasmInteropHandler = new WasmInteropHandler(async (moduleSrc) => {
   const module = await WebAssembly.instantiate(wasmBuffer);
   return module.instance;
 });
-var cInteropHandler = new CInteropHandler(
-  (moduleSrc, functions) => {
-    return LinkerC.link(moduleSrc.replace("file://", ""), functions);
-  }
-);
+var cInteropHandler = new ExternInteropHandler((moduleSrc, functions) => {
+  return link(moduleSrc.replace("file://", ""), functions);
+});
 var manager = new WorkerManager({
   run(moduleSrc, functionName, args) {
     if (moduleSrc.endsWith(".wasm" /* WASM */))
       return wasmInteropHandler.run(moduleSrc, functionName, args);
-    else if (moduleSrc.endsWith(".so" /* SO */))
+    else if (isExternModule(moduleSrc))
       return cInteropHandler.run(moduleSrc, functionName, args);
     else
       throw new ConcurrencyError(ErrorMessage.UnrecognizedModuleType, moduleSrc);

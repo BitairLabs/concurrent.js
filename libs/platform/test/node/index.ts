@@ -3,7 +3,7 @@ import { cpus } from 'node:os'
 
 import { ErrorMessage } from '../../src/core/constants.js'
 import { getProperties } from '../../src/core/utils.js'
-import { concurrent, ExternFunctionReturnType } from '../../src/node/index.js'
+import { concurrent, ExternReturnType } from '../../src/node/index.js'
 import * as sampleServices from './sample_services/index.js'
 
 import type { ConcurrencyError } from '../../src/core/error.js'
@@ -17,6 +17,7 @@ const C_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/c/lib.so', imp
 const CPP_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/cpp/lib.so', import.meta.url)
 const GO_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/go/lib.so', import.meta.url)
 const RUST_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/rust/release/libsample.so', import.meta.url)
+const PYTHON_LIB_PATH = new URL('../sample_extern_libs/python/lib.py', import.meta.url)
 
 concurrent.config({
   maxThreads: 2
@@ -271,7 +272,7 @@ describe('Testing Node.js platform ', () => {
     const services = await concurrent
       .import<typeof wasmServices>(C_SHARED_LIB_PATH, {
         extern: {
-          add: ExternFunctionReturnType.Number
+          add: ExternReturnType.Number
         }
       })
       .load()
@@ -282,7 +283,7 @@ describe('Testing Node.js platform ', () => {
     const services = await concurrent
       .import<typeof wasmServices>(CPP_SHARED_LIB_PATH, {
         extern: {
-          add: ExternFunctionReturnType.Number
+          add: ExternReturnType.Number
         }
       })
       .load()
@@ -293,7 +294,7 @@ describe('Testing Node.js platform ', () => {
     const services = await concurrent
       .import<typeof wasmServices>(GO_SHARED_LIB_PATH, {
         extern: {
-          add: ExternFunctionReturnType.Number
+          add: ExternReturnType.Number
         }
       })
       .load()
@@ -304,7 +305,18 @@ describe('Testing Node.js platform ', () => {
     const services = await concurrent
       .import<typeof wasmServices>(RUST_SHARED_LIB_PATH, {
         extern: {
-          add: ExternFunctionReturnType.Number
+          add: ExternReturnType.Number
+        }
+      })
+      .load()
+    expect(await services.add(1, 2)).equal(3)
+  })
+
+  it('should run a foreign function form a python library', async () => {
+    const services = await concurrent
+      .import<typeof wasmServices>(PYTHON_LIB_PATH, {
+        extern: {
+          add: ExternReturnType.Number
         }
       })
       .load()

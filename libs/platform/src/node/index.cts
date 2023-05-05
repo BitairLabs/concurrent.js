@@ -1,6 +1,6 @@
 import { NodeWorker } from './worker.js'
 import { Master } from '../core/index.js'
-import { ExternFunctionReturnType } from '../core/constants.js'
+import { ExternReturnType } from '../core/constants.js'
 
 const concurrent = new Master({
   create: () => {
@@ -10,4 +10,4 @@ const concurrent = new Master({
   }
 })
 
-export { concurrent, ExternFunctionReturnType }
+export { concurrent, ExternReturnType }

@@ -13,7 +13,7 @@ var __publicField = (obj, key, value) => {
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
-  ExternFunctionReturnType: () => ExternFunctionReturnType,
+  ExternReturnType: () => ExternReturnType,
   ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
@@ -87,15 +87,16 @@ var defaultConcurrencySettings = Object.assign(
 var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
   ModuleExt2["WASM"] = ".wasm";
   ModuleExt2["SO"] = ".so";
+  ModuleExt2["PY"] = ".py";
   return ModuleExt2;
 })(ModuleExt || {});
-var ExternFunctionReturnType = /* @__PURE__ */ ((ExternFunctionReturnType2) => {
-  ExternFunctionReturnType2[ExternFunctionReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Boolean"] = 1] = "Boolean";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Number"] = 2] = "Number";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["String"] = 3] = "String";
-  return ExternFunctionReturnType2;
-})(ExternFunctionReturnType || {});
+var ExternReturnType = /* @__PURE__ */ ((ExternReturnType2) => {
+  ExternReturnType2[ExternReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
+  ExternReturnType2[ExternReturnType2["Boolean"] = 1] = "Boolean";
+  ExternReturnType2[ExternReturnType2["Number"] = 2] = "Number";
+  ExternReturnType2[ExternReturnType2["String"] = 3] = "String";
+  return ExternReturnType2;
+})(ExternReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -155,7 +156,7 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
     return false;
   else
     return true;

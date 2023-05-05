@@ -1,6 +1,10 @@
+## v0.7.1
+
+- Running Python libraries is implemented.
+
 ## v0.7.0
 
-- Running C, C++, Go and Rust is implemented.
+- Running C-shared libraries is implemented.
 
 ## v0.6.1
 
@@ -11,7 +15,6 @@
 
 - New tests are added to the platform lib.
 - Running WebAssembly modules is implemented.
-
 
 ## v0.5.15
 
