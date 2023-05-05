@@ -1,5 +1,5 @@
 declare const concurrent: IConcurrent
-export { concurrent,  ExternFunctionReturnType }
+export { concurrent, ExternReturnType }
 
 export declare interface IConcurrent {
   config(settings: Partial<ConcurrencySettings>): void
@@ -27,7 +27,7 @@ export type ModuleImportOptions = Partial<{
   }
 }>
 
-declare enum ExternFunctionReturnType {
+declare enum ExternReturnType {
   ArrayBuffer,
   Boolean,
   Number,

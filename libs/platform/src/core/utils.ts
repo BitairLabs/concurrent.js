@@ -102,6 +102,12 @@ export function createObject(properties: Dict<number>) {
 }
 
 export function isNativeModule(moduleSrc: string) {
-  if (moduleSrc.endsWith(ModuleExt.WASM) || moduleSrc.endsWith(ModuleExt.SO)) return false
+  if (moduleSrc.endsWith(ModuleExt.WASM) || moduleSrc.endsWith(ModuleExt.SO) || moduleSrc.endsWith(ModuleExt.PY))
+    return false
   else return true
+}
+
+export function isExternModule(moduleSrc: string) {
+  if (moduleSrc.endsWith(ModuleExt.SO) || moduleSrc.endsWith(ModuleExt.PY)) return true
+  else return false
 }

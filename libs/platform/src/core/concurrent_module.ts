@@ -1,8 +1,8 @@
-import { ErrorMessage, ModuleExt } from './constants.js'
+import { ErrorMessage } from './constants.js'
 import { ConcurrencyError } from './error.js'
 import { ThreadedFunction } from './threaded_function.js'
 import { ThreadedObject } from './threaded_object.js'
-import { isFunction, isNativeModule } from './utils.js'
+import { isExternModule, isFunction, isNativeModule } from './utils.js'
 
 import type { IConcurrentModule } from '../index.js'
 import type { ThreadPool } from './thread_pool.js'
@@ -28,7 +28,7 @@ export class ConcurrentModule<T> implements IConcurrentModule<T> {
           if (!Reflect.has(cache, key)) {
             const threadedFunction = new ThreadedFunction(thread, moduleSrc, key as string)
             Reflect.set(cache, key, (...params: unknown[]) => {
-              if (moduleSrc.endsWith(ModuleExt.SO)) return threadedFunction.invoke([params, self.options.extern])
+              if (isExternModule(moduleSrc)) return threadedFunction.invoke([params, self.options.extern])
               else return threadedFunction.invoke(params)
             })
           }

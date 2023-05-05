@@ -10,33 +10,27 @@ If you are interested in sponsoring the project, please contact us at [hello@bit
 
 # Features
 
-- [x] Platform/Language support
-  - [x] Web browsers
-    - [x] JavaScript (ECMAScript & CommonJS)
-    - [x] WebAssembly
-  - [x] Node.js
-    - [x] JavaScript (ECMAScript & CommonJS)
-    - [x] C
-    - [x] C++
-    - [x] Go
+- [ ] Parallel Execution
+  - [x] JavaScript
+    - [x] Deno
+    - [x] Node.js
+    - [x] Web browsers
+  - [ ] TypeScript
+    - [x] Deno
+    - [ ] Node.js
+  - [x] WebAssembly
+    - [x] Deno
+    - [x] Node.js
+    - [x] Web browsers
+  - [ ] Foreign Functions
+    - [ ] C-shared libraries
+      - [ ] Deno
+      - [x] Node.js
     - [ ] Java
     - [ ] Python
+      - [ ] Deno
+      - [x] Node.js
     - [ ] Ruby
-    - [x] Rust
-    - [ ] TypeScript
-    - [x] WebAssembly
-  - [x] Deno
-    - [x] JavaScript (ECMAScript & CommonJS)
-    - [ ] C
-    - [ ] C++
-    - [ ] Go
-    - [ ] Java
-    - [ ] Python
-    - [ ] Ruby
-    - [ ] Rust
-    - [x] TypeScript
-    - [x] WebAssembly
-- [x] Parallel execution
 - [ ] Reactive concurrency
 - [ ] Inter-worker data sharing
 - [ ] Multithreaded dependency resolver
@@ -69,7 +63,7 @@ bash hello_world.sh
 import { concurrent } from '@bitair/concurrent.js'
 
 // import and load a JS module into a worker
-const { SampleObject, sampleFunction } = await concurrent.import('sample-js-module.js').load()
+const { SampleObject, sampleFunction } = await concurrent.import(new URL('./sample_module.js', import.meta.url)).load()
 
 // run a function
 const result = await sampleFunction(/*...args*/)
@@ -93,21 +87,38 @@ await concurrent.terminate()
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
-const { sampleFunction } = await concurrent.import('sample-wasm-module.wasm').load()
+const { sampleFunction } = await concurrent.import(new URL('./sample_wasm_module.wasm', import.meta.url)).load()
 const result = await sampleFunction(/*...args*/)
 await concurrent.terminate()
 ```
 
-## Running C, C++, Go and Rust 
+## Running foreign functions
 
-This feature requires the [Linker.c package](https://github.com/bitair-org/linker.js) to be manually installed.
+This feature requires the [Linker.js package](https://github.com/bitair-org/linker.js) to be manually installed.
+
+### Running C-shared libraries
 
 ```js
-import { concurrent, ExternFunctionReturnType } from '@bitair/concurrent.js'
+import { concurrent, ExternReturnType } from '@bitair/concurrent.js'
 const { sampleFunction } = await concurrent
-  .import('shared-lib.so', {
+  .import(new URL('./sample_lib.so', import.meta.url), {
     extern: {
-      sampleFunction: ExternFunctionReturnType.Number
+      sampleFunction: ExternReturnType.Number
+    }
+  })
+  .load()
+const result = await sampleFunction(/*...args*/)
+await concurrent.terminate()
+```
+
+### Running Python libraries
+
+```js
+import { concurrent, ExternReturnType } from '@bitair/concurrent.js'
+const { sampleFunction } = await concurrent
+  .import(new URL('./sample_lib.py', import.meta.url), {
+    extern: {
+      sampleFunction: ExternReturnType.Number
     }
   })
   .load()
@@ -156,7 +167,7 @@ await concurrent.terminate()
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.7.0",
+    "@bitair/concurrent.js": "^0.7.1",
     "extra-bigint": "^1.1.10"
   }
 }
@@ -171,7 +182,7 @@ node .
 `index.ts`
 
 ```js
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.7.0/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.7.1/mod.ts'
 const { factorial } = await concurrent.import(new URL('services/index.ts', import.meta.url)).load()
 const result = await factorial(50n)
 console.log(result)
@@ -261,7 +272,7 @@ npx esbuild src/services/index.js --bundle --format=esm --platform=browser --tar
 {
   "type": "module",
   "dependencies": {
-    "@bitair/concurrent.js": "^0.7.0",
+    "@bitair/concurrent.js": "^0.7.1",
     "http-server": "^14.1.1",
     "extra-bigint": "^1.1.10"
   },
@@ -282,7 +293,7 @@ import { concurrent } from '@bitair/concurrent.js'
 
 const extraBigint = concurrent.import('extra-bigint')
 
-concurrent.config({ maxThreads: 16 }) // Instead of a hardcoded value use os.availableParallelism() in Node.js v19.4.0 or later
+concurrent.config({ maxThreads: 16 }) // Instead of a hardcoded value, use os.availableParallelism() in Node.js v19.4.0 or later
 
 const ops = []
 for (let i = 0; i <= 100; i++) {
@@ -314,13 +325,13 @@ Imports and prepares the module for being loaded into workers. Note that only fu
     ```ts
     type ModuleImportOptions = Partial<{
       extern: {
-        [key: string]: ExternFunctionReturnType
+        [key: string]: ExternReturnType
       }
     }>
     ```
-    - `ExternFunctionReturnType`
+    - `ExternReturnType`
       ```ts
-      enum ExternFunctionReturnType {
+      enum ExternReturnType {
         ArrayBuffer,
         Boolean,
         Number,

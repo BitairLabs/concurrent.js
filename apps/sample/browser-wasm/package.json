@@ -6,7 +6,7 @@
     "start": "npx http-server static"
   },
   "dependencies": {
-    "@bitair/concurrent.js": "^0.7.0",
+    "@bitair/concurrent.js": "^0.7.1",
     "http-server": "^14.1.1"
   },
   "devDependencies": {

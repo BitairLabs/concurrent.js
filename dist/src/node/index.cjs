@@ -25,7 +25,7 @@ var __publicField = (obj, key, value) => {
 // libs/platform/src/node/index.cts
 var node_exports = {};
 __export(node_exports, {
-  ExternFunctionReturnType: () => ExternFunctionReturnType,
+  ExternReturnType: () => ExternReturnType,
   concurrent: () => concurrent
 });
 module.exports = __toCommonJS(node_exports);
@@ -119,13 +119,13 @@ var defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 );
-var ExternFunctionReturnType = /* @__PURE__ */ ((ExternFunctionReturnType2) => {
-  ExternFunctionReturnType2[ExternFunctionReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Boolean"] = 1] = "Boolean";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["Number"] = 2] = "Number";
-  ExternFunctionReturnType2[ExternFunctionReturnType2["String"] = 3] = "String";
-  return ExternFunctionReturnType2;
-})(ExternFunctionReturnType || {});
+var ExternReturnType = /* @__PURE__ */ ((ExternReturnType2) => {
+  ExternReturnType2[ExternReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
+  ExternReturnType2[ExternReturnType2["Boolean"] = 1] = "Boolean";
+  ExternReturnType2[ExternReturnType2["Number"] = 2] = "Number";
+  ExternReturnType2[ExternReturnType2["String"] = 3] = "String";
+  return ExternReturnType2;
+})(ExternReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isBoolean(val) {
@@ -184,10 +184,16 @@ function createObject(properties) {
   return obj;
 }
 function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */))
+  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
     return false;
   else
     return true;
+}
+function isExternModule(moduleSrc) {
+  if (moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
+    return true;
+  else
+    return false;
 }
 
 // libs/platform/src/core/error.ts
@@ -314,7 +320,7 @@ var ConcurrentModule = class {
           if (!Reflect.has(cache, key)) {
             const threadedFunction = new ThreadedFunction(thread, moduleSrc, key);
             Reflect.set(cache, key, (...params) => {
-              if (moduleSrc.endsWith(".so" /* SO */))
+              if (isExternModule(moduleSrc))
                 return threadedFunction.invoke([params, self.options.extern]);
               else
                 return threadedFunction.invoke(params);
@@ -587,6 +593,6 @@ var concurrent = new Master({
 });
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ExternFunctionReturnType,
+  ExternReturnType,
   concurrent
 });
