@@ -10,8 +10,8 @@
     "start:esm": "node build/src/index.mjs"
   },
   "dependencies": {
-    "extra-bigint": "^1.1.10",
-    "@bitair/concurrent.js": "^0.7.1"
+    "extra-bigint": "^1.1.10",    
+    "@bitair/concurrent.js": "^0.8.1"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^1.0.2",

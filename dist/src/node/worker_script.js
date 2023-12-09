@@ -10,17 +10,12 @@ var __publicField = (obj, key, value) => {
 };
 
 // libs/platform/src/node/worker_script.ts
-import { link } from "@bitair/linker.js";
-import fs from "fs";
 import { parentPort } from "node:worker_threads";
-import { promisify } from "util";
 
 // libs/platform/src/core/constants.ts
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
-  ExternReturnType: () => ExternReturnType,
-  ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
   ValueType: () => ValueType,
@@ -28,35 +23,37 @@ __export(constants_exports, {
   defaultThreadPoolSettings: () => defaultThreadPoolSettings
 });
 var ThreadMessageType = /* @__PURE__ */ ((ThreadMessageType2) => {
-  ThreadMessageType2[ThreadMessageType2["RunTask"] = 1] = "RunTask";
-  ThreadMessageType2[ThreadMessageType2["ReadTaskResult"] = 2] = "ReadTaskResult";
+  ThreadMessageType2[ThreadMessageType2["Task"] = 1] = "Task";
+  ThreadMessageType2[ThreadMessageType2["DirectMessage"] = 2] = "DirectMessage";
+  ThreadMessageType2[ThreadMessageType2["DirectMessageReplied"] = 3] = "DirectMessageReplied";
+  ThreadMessageType2[ThreadMessageType2["TaskCompleted"] = 4] = "TaskCompleted";
   return ThreadMessageType2;
 })(ThreadMessageType || {});
-var TaskType = /* @__PURE__ */ ((TaskType2) => {
-  TaskType2[TaskType2["InvokeFunction"] = 1] = "InvokeFunction";
-  TaskType2[TaskType2["GetStaticProperty"] = 2] = "GetStaticProperty";
-  TaskType2[TaskType2["SetStaticProperty"] = 3] = "SetStaticProperty";
-  TaskType2[TaskType2["InvokeStaticMethod"] = 4] = "InvokeStaticMethod";
-  TaskType2[TaskType2["InstantiateObject"] = 5] = "InstantiateObject";
-  TaskType2[TaskType2["GetInstanceProperty"] = 6] = "GetInstanceProperty";
-  TaskType2[TaskType2["SetInstanceProperty"] = 7] = "SetInstanceProperty";
-  TaskType2[TaskType2["InvokeInstanceMethod"] = 8] = "InvokeInstanceMethod";
-  TaskType2[TaskType2["DisposeObject"] = 9] = "DisposeObject";
-  return TaskType2;
+var TaskType = /* @__PURE__ */ ((TaskType3) => {
+  TaskType3[TaskType3["InvokeFunction"] = 1] = "InvokeFunction";
+  TaskType3[TaskType3["GetStaticProperty"] = 2] = "GetStaticProperty";
+  TaskType3[TaskType3["SetStaticProperty"] = 3] = "SetStaticProperty";
+  TaskType3[TaskType3["InvokeStaticMethod"] = 4] = "InvokeStaticMethod";
+  TaskType3[TaskType3["InstantiateObject"] = 5] = "InstantiateObject";
+  TaskType3[TaskType3["GetInstanceProperty"] = 6] = "GetInstanceProperty";
+  TaskType3[TaskType3["SetInstanceProperty"] = 7] = "SetInstanceProperty";
+  TaskType3[TaskType3["InvokeInstanceMethod"] = 8] = "InvokeInstanceMethod";
+  TaskType3[TaskType3["DisposeObject"] = 9] = "DisposeObject";
+  return TaskType3;
 })(TaskType || {});
 var ErrorMessage = {
   InternalError: { code: 500, text: "Internal error has occurred." },
-  InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{0}'." },
-  InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{0}'" },
-  CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{0}'." },
-  ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{0}'" },
+  InvalidThreadMessageType: { code: 502, text: "Cannot handle a thread message with the type '%{0}'." },
+  InvalidTaskType: { code: 503, text: "Cannot handle a task with the type '%{0}'" },
+  CoroutineNotFound: { code: 504, text: "Cannot find a coroutine with the ID '%{0}'." },
+  ObjectNotFound: { code: 505, text: "Cannot find an object with the ID '%{0}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
-  MethodAssignment: { code: 509, text: "Can't assign a method." },
+  MethodAssignment: { code: 509, text: "Cannot assign a method." },
   NotAccessibleExport: {
     code: 510,
-    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+    text: "Cannot access an export of type '%{0}'. Only top level functions and classes are imported."
   },
   ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
   ThreadTerminated: { code: 512, text: "Thread has been terminated." },
@@ -67,6 +64,22 @@ var ErrorMessage = {
   UnexportedFunction: {
     code: 514,
     text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  },
+  TooManyChannelProvided: {
+    code: 515,
+    text: "More than one channel has been provided for the task."
+  },
+  UsedChannelProvided: {
+    code: 516,
+    text: "The provided channel has already been used for another task."
+  },
+  ChannelNotFound: {
+    code: 517,
+    text: "Cannot find a channel for a coroutine with the ID '{%1}'"
+  },
+  MessageNotFound: {
+    code: 518,
+    text: "Cannot find a message with the ID '{%1}'"
   }
 };
 var ValueType = {
@@ -90,19 +103,6 @@ var defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 );
-var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
-  ModuleExt2["WASM"] = ".wasm";
-  ModuleExt2["SO"] = ".so";
-  ModuleExt2["PY"] = ".py";
-  return ModuleExt2;
-})(ModuleExt || {});
-var ExternReturnType = /* @__PURE__ */ ((ExternReturnType2) => {
-  ExternReturnType2[ExternReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
-  ExternReturnType2[ExternReturnType2["Boolean"] = 1] = "Boolean";
-  ExternReturnType2[ExternReturnType2["Number"] = 2] = "Number";
-  ExternReturnType2[ExternReturnType2["String"] = 3] = "String";
-  return ExternReturnType2;
-})(ExternReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isSymbol(val) {
@@ -160,18 +160,6 @@ function createObject(properties) {
     }
   }
   return obj;
-}
-function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
-    return false;
-  else
-    return true;
-}
-function isExternModule(moduleSrc) {
-  if (moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
-    return true;
-  else
-    return false;
 }
 
 // libs/platform/src/core/error.ts
@@ -233,85 +221,182 @@ __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, 
   }
 }));
 
+// libs/platform/src/core/message.ts
+var _Message = class {
+  constructor(id, replyCallback) {
+    this.id = id;
+    this.replyCallback = replyCallback;
+  }
+  static create(replyCallback) {
+    this.lastMessageId += 1;
+    return new _Message(this.lastMessageId, replyCallback);
+  }
+  reply(error, result) {
+    this.replyCallback(error, result);
+  }
+};
+var Message = _Message;
+__publicField(Message, "lastMessageId", 0);
+
+// libs/platform/src/core/channel.ts
+var Channel = class {
+  worker;
+  coroutineId;
+  messages;
+  messageHandler;
+  initialized = false;
+  constructor(listener) {
+    this.messages = /* @__PURE__ */ new Map();
+    listener(this.onmessage.bind(this), this.postMessage.bind(this));
+  }
+  init(worker, coroutineId) {
+    this.initialized = true;
+    this.worker = worker;
+    this.coroutineId = coroutineId;
+  }
+  onmessage(handler) {
+    this.messageHandler = handler;
+  }
+  postMessage(name, ...data) {
+    return new Promise((resolve, reject) => {
+      const message = Message.create((error, result) => {
+        if (error)
+          return reject(error);
+        return resolve(result);
+      });
+      this.messages.set(message.id, message);
+      this.worker?.postMessage([
+        2 /* DirectMessage */,
+        [this.coroutineId, [message.id, name, data]]
+      ]);
+    });
+  }
+  async handleMessage(name, data) {
+    if (this.messageHandler)
+      return await this.messageHandler(name, ...data);
+  }
+  async handleMessageReply([messageId, error, result]) {
+    const message = this.messages.get(messageId);
+    if (!message)
+      throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId);
+    await message.reply(error, result);
+    this.messages.delete(messageId);
+  }
+};
+
+// libs/platform/src/core/common.ts
+function isInvocableTask(type) {
+  return [1 /* InvokeFunction */, 4 /* InvokeStaticMethod */, 8 /* InvokeInstanceMethod */].includes(type);
+}
+function hasChannel(type, data) {
+  return isInvocableTask(type) && data[getChannelFlagIndex(type)];
+}
+function getChannelFlagIndex(type) {
+  return type === 4 /* InvokeStaticMethod */ ? 4 : 3;
+}
+function getTaskArgs(type, data) {
+  const argsIndex = type === 4 /* InvokeStaticMethod */ ? 3 : 2;
+  return data[argsIndex];
+}
+
 // libs/platform/src/core/worker_manager.ts
 var WorkerManager = class {
-  constructor(interopHandler) {
-    this.interopHandler = interopHandler;
-  }
   objects = /* @__PURE__ */ new Map();
+  channels = /* @__PURE__ */ new Map();
   lastObjectId = 0;
-  async handleMessage(type, data) {
-    if (type == 1 /* RunTask */) {
+  async handleMessage(type, data, worker) {
+    let reply = null;
+    if (type == 1 /* Task */) {
       const [coroutineId, taskType, taskData] = data;
-      let message;
-      try {
-        let error, result;
-        switch (taskType) {
-          case 1 /* InvokeFunction */:
-            ;
-            [error, result] = await this.invokeFunction(...taskData);
-            break;
-          case 2 /* GetStaticProperty */:
-            ;
-            [error, result] = await this.getStaticProperty(...taskData);
-            break;
-          case 3 /* SetStaticProperty */:
-            ;
-            [error, result] = await this.setStaticProperty(...taskData);
-            break;
-          case 4 /* InvokeStaticMethod */:
-            ;
-            [error, result] = await this.invokeStaticMethod(...taskData);
-            break;
-          case 5 /* InstantiateObject */:
-            ;
-            [error, result] = await this.instantiateObject(...taskData);
-            break;
-          case 6 /* GetInstanceProperty */:
-            ;
-            [error, result] = await this.getInstanceProperty(...taskData);
-            break;
-          case 7 /* SetInstanceProperty */:
-            ;
-            [error, result] = await this.setInstanceProperty(...taskData);
-            break;
-          case 8 /* InvokeInstanceMethod */:
-            ;
-            [error, result] = await this.invokeInstanceMethod(...taskData);
-            break;
-          case 9 /* DisposeObject */:
-            ;
-            [error, result] = this.disposeObject(...taskData);
-            break;
-          default:
-            throw new ConcurrencyError(ErrorMessage.InvalidTaskType, taskType);
-        }
-        message = [2 /* ReadTaskResult */, [coroutineId, error, result]];
-      } catch (error) {
-        message = [
-          2 /* ReadTaskResult */,
-          [
-            coroutineId,
-            { message: error.message, code: error.code },
-            void 0
-          ]
-        ];
-      }
-      return message;
+      const [error, result] = await this.handleTask(coroutineId, taskType, taskData, worker);
+      reply = [4 /* TaskCompleted */, [coroutineId, error, result]];
+    } else if (type === 2 /* DirectMessage */) {
+      const [coroutineId, message] = data;
+      const [error, result] = await this.handleDirectMessage(coroutineId, message);
+      reply = [
+        3 /* DirectMessageReplied */,
+        [coroutineId, [message[0], error, result]]
+      ];
+    } else if (type === 3 /* DirectMessageReplied */) {
+      const [coroutineId, messageReply] = data;
+      await this.handleDirectMessageReply(coroutineId, messageReply);
     } else {
-      throw new ConcurrencyError(ErrorMessage.InvalidMessageType, type);
+      throw new ConcurrencyError(ErrorMessage.InvalidThreadMessageType, type);
     }
+    return reply;
   }
-  async invokeFunction(moduleSrc, functionName, args = []) {
+  async handleTask(coroutineId, type, data, worker) {
+    const channel = this.prepareChannelIfAny(type, data, worker, coroutineId);
+    let error, result;
+    switch (type) {
+      case 1 /* InvokeFunction */:
+        ;
+        [error, result] = await this.invokeFunction(...data);
+        break;
+      case 2 /* GetStaticProperty */:
+        ;
+        [error, result] = await this.getStaticProperty(...data);
+        break;
+      case 3 /* SetStaticProperty */:
+        ;
+        [error, result] = await this.setStaticProperty(...data);
+        break;
+      case 4 /* InvokeStaticMethod */:
+        ;
+        [error, result] = await this.invokeStaticMethod(...data);
+        break;
+      case 5 /* InstantiateObject */:
+        ;
+        [error, result] = await this.instantiateObject(...data);
+        break;
+      case 6 /* GetInstanceProperty */:
+        ;
+        [error, result] = await this.getInstanceProperty(...data);
+        break;
+      case 7 /* SetInstanceProperty */:
+        ;
+        [error, result] = await this.setInstanceProperty(...data);
+        break;
+      case 8 /* InvokeInstanceMethod */:
+        ;
+        [error, result] = await this.invokeInstanceMethod(...data);
+        break;
+      case 9 /* DisposeObject */:
+        ;
+        [error, result] = this.disposeObject(...data);
+        break;
+      default:
+        error = new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
+    }
+    if (channel)
+      this.channels.delete(coroutineId);
+    return [error, result];
+  }
+  async handleDirectMessage(coroutineId, message) {
+    const channel = this.channels.get(coroutineId);
+    if (!channel)
+      throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
     let result, error;
     try {
-      if (!isNativeModule(moduleSrc)) {
-        result = await this.interopHandler.run(moduleSrc, functionName, args);
-      } else {
-        const module = await import(moduleSrc);
-        const method = Reflect.get(module, functionName);
-        result = await method.apply(module.exports, args);
-      }
+      result = await channel.handleMessage(message[1], message[2]);
+    } catch (err) {
+      error = err;
+    }
+    return [error, result];
+  }
+  async handleDirectMessageReply(coroutineId, reply) {
+    const channel = this.channels.get(coroutineId);
+    if (!channel)
+      throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
+    await channel.handleMessageReply(reply);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async invokeFunction(moduleSrc, functionName, args = [], _hasChannel) {
+    let result, error;
+    try {
+      const module = await import(moduleSrc);
+      const method = Reflect.get(module, functionName);
+      result = await method.apply(module.exports, args);
     } catch (err) {
       error = err;
     }
@@ -339,7 +424,7 @@ var WorkerManager = class {
     }
     return [error, result];
   }
-  async invokeStaticMethod(moduleSrc, exportName, methodName, args = []) {
+  async invokeStaticMethod(moduleSrc, exportName, methodName, args = [], _hasChannel) {
     let result, error;
     try {
       const module = await import(moduleSrc);
@@ -351,6 +436,7 @@ var WorkerManager = class {
     }
     return [error, result];
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async instantiateObject(moduleSrc, exportName, args = []) {
     let result, error;
     try {
@@ -389,7 +475,8 @@ var WorkerManager = class {
     }
     return [error, result];
   }
-  async invokeInstanceMethod(objectId, methodName, args = []) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async invokeInstanceMethod(objectId, methodName, args = [], _hasChannel) {
     const obj = this.objects.get(objectId);
     if (!obj)
       throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
@@ -414,76 +501,33 @@ var WorkerManager = class {
     }
     return [error, void 0];
   }
-};
-
-// libs/platform/src/core/interop/extern.ts
-var ExternInteropHandler = class {
-  constructor(link2) {
-    this.link = link2;
-  }
-  cache = /* @__PURE__ */ new Map();
-  async run(moduleSrc, functionName, args) {
-    const [fnArgs, fnSigs] = args;
-    let lib;
-    if (this.cache.has(moduleSrc))
-      lib = this.cache.get(moduleSrc);
-    else {
-      lib = this.link(moduleSrc, fnSigs);
-      this.cache.set(moduleSrc, lib);
+  prepareChannelIfAny(type, data, worker, coroutineId) {
+    let channel;
+    if (hasChannel(type, data)) {
+      channel = new Channel(() => void 0);
+      channel.init(worker, coroutineId);
+      this.channels.set(coroutineId, channel);
+      const args = getTaskArgs(type, data);
+      args.push(channel);
     }
-    const fn = lib[functionName];
-    if (!fn)
-      throw new ConcurrencyError(ErrorMessage.UnexportedFunction, functionName, moduleSrc);
-    const result = fn(...fnArgs);
-    return Promise.resolve(result);
-  }
-};
-
-// libs/platform/src/core/interop/wasm.ts
-var WasmInteropHandler = class {
-  constructor(createInstance) {
-    this.createInstance = createInstance;
-  }
-  cache = /* @__PURE__ */ new Map();
-  async run(moduleSrc, functionName, args) {
-    let instance;
-    if (this.cache.has(moduleSrc))
-      instance = this.cache.get(moduleSrc);
-    else {
-      instance = await this.createInstance(moduleSrc);
-      this.cache.set(moduleSrc, instance);
-    }
-    const fn = Reflect.get(instance.exports, functionName);
-    if (!fn)
-      throw new ConcurrencyError(ErrorMessage.UnexportedFunction, functionName, moduleSrc);
-    const result = Reflect.apply(fn, instance.exports, args);
-    return result;
+    return channel;
   }
 };
 
 // libs/platform/src/node/worker_script.ts
-var wasmInteropHandler = new WasmInteropHandler(async (moduleSrc) => {
-  const wasmBuffer = await promisify(fs.readFile)(moduleSrc.replace("file://", ""));
-  const module = await WebAssembly.instantiate(wasmBuffer);
-  return module.instance;
-});
-var cInteropHandler = new ExternInteropHandler((moduleSrc, functions) => {
-  return link(moduleSrc.replace("file://", ""), functions);
-});
-var manager = new WorkerManager({
-  run(moduleSrc, functionName, args) {
-    if (moduleSrc.endsWith(".wasm" /* WASM */))
-      return wasmInteropHandler.run(moduleSrc, functionName, args);
-    else if (isExternModule(moduleSrc))
-      return cInteropHandler.run(moduleSrc, functionName, args);
-    else
-      throw new ConcurrencyError(ErrorMessage.UnrecognizedModuleType, moduleSrc);
-  }
-});
+var manager = new WorkerManager();
 if (!parentPort)
   throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
 parentPort.on("message", async ([type, data]) => {
-  const reply = await manager.handleMessage(type, data);
-  if (parentPort)
+  if (!parentPort)
+    throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
+  const reply = await manager.handleMessage(type, data, {
+    postMessage: (message) => {
+      if (!parentPort)
+        throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
+      parentPort.postMessage(message);
+    }
+  });
+  if (reply)
     parentPort.postMessage(reply);
 });

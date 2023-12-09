@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import sinon from 'sinon'
 
-import { ErrorMessage, ThreadMessageType } from '../../src/core/constants.js'
+import { ThreadMessageType, ErrorMessage } from '../../src/core/constants.js'
 import { Coroutine } from '../../src/core/coroutine.js'
 import { Thread } from '../../src/core/thread.js'
 import {
@@ -38,14 +38,14 @@ describe('Testing Thread', () => {
 
     sinon.stub(worker, 'postMessage').callsFake((_message: ThreadMessage) => {
       const [coroutineId] = _message[1] as TaskInfo
-      const message: ThreadMessage = [ThreadMessageType.RunTask, [coroutineId, task.type, task.data]]
+      const message: ThreadMessage = [ThreadMessageType.Task, [coroutineId, task.type, task.data]]
 
       expect(_message).deep.equal(message)
       expect(getThreadCoroutines(thread).size).equal(1)
       expect(getThreadCoroutines(thread).get(coroutineId)).not.undefined
 
       getWorkerMessageHandler(worker).call(worker, [
-        ThreadMessageType.ReadTaskResult,
+        ThreadMessageType.TaskCompleted,
         [coroutineId, undefined, [OBJECT_ID]]
       ])
     })
@@ -63,7 +63,7 @@ describe('Testing Thread', () => {
       const [coroutineId] = _message[1] as TaskInfo
 
       getWorkerMessageHandler(worker).call(worker, [
-        ThreadMessageType.ReadTaskResult,
+        ThreadMessageType.TaskCompleted,
         [coroutineId, new Error(), undefined]
       ])
     })
@@ -103,18 +103,18 @@ describe('Testing Thread', () => {
   it('throws when receives an invalid message type', async () => {
     let error
     try {
-      getWorkerMessageHandler(worker).call(worker, [0, []])
+      await getWorkerMessageHandler(worker).call(worker, [0, []])
     } catch (_error) {
       error = _error
     }
 
-    expect((error as ConcurrencyError).code).equal(ErrorMessage.InvalidMessageType.code)
+    expect((error as ConcurrencyError).code).equal(ErrorMessage.InvalidThreadMessageType.code)
   })
 
   it('throws when receives a task result with an unregistered coroutine', async () => {
     let error
     try {
-      getWorkerMessageHandler(worker).call(worker, [ThreadMessageType.ReadTaskResult, [0]])
+      await getWorkerMessageHandler(worker).call(worker, [ThreadMessageType.TaskCompleted, [0]])
     } catch (_error) {
       error = _error
     }

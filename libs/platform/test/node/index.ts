@@ -3,21 +3,15 @@ import { cpus } from 'node:os'
 
 import { ErrorMessage } from '../../src/core/constants.js'
 import { getProperties } from '../../src/core/utils.js'
-import { concurrent, ExternReturnType } from '../../src/node/index.js'
+import { concurrent } from '../../src/node/index.js'
 import * as sampleServices from './sample_services/index.js'
 
 import type { ConcurrencyError } from '../../src/core/error.js'
-import type * as wasmServices from '../../../../apps/sample/wasm/build/index.js'
+import { Channel } from '../../src/core/channel.js'
 
 const THREAD_INSTANTIATION_DELAY = 0.5
 const NOT_RUNNING_ON_WORKER = 'Not running on a worker'
 const SERVICES_SRC = new URL('../../build/node/services/index.js', import.meta.url)
-const WASM_SERVICES_SRC = new URL('../../../../apps/sample/wasm/build/index.wasm', import.meta.url)
-const C_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/c/lib.so', import.meta.url)
-const CPP_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/cpp/lib.so', import.meta.url)
-const GO_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/go/lib.so', import.meta.url)
-const RUST_SHARED_LIB_PATH = new URL('../../build/sample_extern_libs/rust/release/libsample.so', import.meta.url)
-const PYTHON_LIB_PATH = new URL('../sample_extern_libs/python/lib.py', import.meta.url)
 
 concurrent.config({
   maxThreads: 2
@@ -263,63 +257,39 @@ describe('Testing Node.js platform ', () => {
     concurrent.config({ disabled: false })
   })
 
-  it('should run an exported wasm function', async () => {
-    const services = await concurrent.import<typeof wasmServices>(WASM_SERVICES_SRC).load()
-    expect(await services.add(1, 2)).equal(3)
+  it.only('should run a reactive function', async () => {
+    const result = await services.reactiveAdd(createReactiveAddChannel())
+    expect(result).equal(10)
   })
 
-  it('should run a foreign function form a C shared library', async () => {
-    const services = await concurrent
-      .import<typeof wasmServices>(C_SHARED_LIB_PATH, {
-        extern: {
-          add: ExternReturnType.Number
-        }
-      })
-      .load()
-    expect(await services.add(1, 2)).equal(3)
+  it.only('should run a reactive static method', async () => {
+    const result = await services.SampleObject.reactiveAdd(createReactiveAddChannel())
+    expect(result).equal(10)
   })
 
-  it('should run a foreign function form a C++ shared library', async () => {
-    const services = await concurrent
-      .import<typeof wasmServices>(CPP_SHARED_LIB_PATH, {
-        extern: {
-          add: ExternReturnType.Number
-        }
-      })
-      .load()
-    expect(await services.add(1, 2)).equal(3)
-  })
-
-  it('should run a foreign function form a Go shared library', async () => {
-    const services = await concurrent
-      .import<typeof wasmServices>(GO_SHARED_LIB_PATH, {
-        extern: {
-          add: ExternReturnType.Number
-        }
-      })
-      .load()
-    expect(await services.add(1, 2)).equal(3)
-  })
-
-  it('should run a foreign function form a Rust shared library', async () => {
-    const services = await concurrent
-      .import<typeof wasmServices>(RUST_SHARED_LIB_PATH, {
-        extern: {
-          add: ExternReturnType.Number
-        }
-      })
-      .load()
-    expect(await services.add(1, 2)).equal(3)
-  })
-
-  it('should run a foreign function form a python library', async () => {
-    const services = await concurrent
-      .import<typeof wasmServices>(PYTHON_LIB_PATH, {
-        extern: {
-          add: ExternReturnType.Number
-        }
-      })
-      .load()
-    expect(await services.add(1, 2)).equal(3)
+  it.only('should run a reactive instance method', async () => {
+    const obj = await new services.SampleObject([])
+    const result = await obj.reactiveAdd(createReactiveAddChannel())
+    expect(result).equal(10)
   })
 })
+
+function createReactiveAddChannel() {
+  const arr = [1, 2, 3, 4]
+
+  return new Channel((onmessage, postMessage) => {
+    onmessage(async (name, ...data) => {
+      if (name === 'next') {
+        const [i] = data as [number]
+        expect(i).lessThanOrEqual(3)
+        if (i === arr.length - 1) {
+          const sum = (await postMessage('done')) as number
+          expect(sum).equal(6)
+        }
+        return arr[i]
+      }
+
+      return undefined
+    })
+  })
+}

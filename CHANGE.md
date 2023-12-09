@@ -1,3 +1,8 @@
+## v0.8.0
+
+- Supporting language interop is dropped. The @bitair/linker.js package should be used instead.
+- Reactive concurrency is implemented.
+
 ## v0.7.1
 
 - Running Python libraries is implemented.

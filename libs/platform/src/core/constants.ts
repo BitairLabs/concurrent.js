@@ -1,8 +1,10 @@
 import type { ThreadPoolSettings } from '../index.js'
 
 export enum ThreadMessageType {
-  RunTask = 1,
-  ReadTaskResult
+  Task = 1,
+  DirectMessage,
+  DirectMessageReplied,
+  TaskCompleted
 }
 
 export enum TaskType {
@@ -19,17 +21,17 @@ export enum TaskType {
 
 export const ErrorMessage = {
   InternalError: { code: 500, text: 'Internal error has occurred.' },
-  InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{0}'." },
-  InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{0}'" },
-  CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{0}'." },
-  ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{0}'" },
+  InvalidThreadMessageType: { code: 502, text: "Cannot handle a thread message with the type '%{0}'." },
+  InvalidTaskType: { code: 503, text: "Cannot handle a task with the type '%{0}'" },
+  CoroutineNotFound: { code: 504, text: "Cannot find a coroutine with the ID '%{0}'." },
+  ObjectNotFound: { code: 505, text: "Cannot find an object with the ID '%{0}'" },
   NotRunningOnWorker: { code: 506, text: 'This module must be run on a worker.' },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: 'Thread allocation failed due to timeout.' },
-  MethodAssignment: { code: 509, text: "Can't assign a method." },
+  MethodAssignment: { code: 509, text: 'Cannot assign a method.' },
   NotAccessibleExport: {
     code: 510,
-    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+    text: "Cannot access an export of type '%{0}'. Only top level functions and classes are imported."
   },
   ThreadPoolTerminated: { code: 511, text: 'Thread pool has been terminated.' },
   ThreadTerminated: { code: 512, text: 'Thread has been terminated.' },
@@ -40,6 +42,22 @@ export const ErrorMessage = {
   UnexportedFunction: {
     code: 514,
     text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  },
+  TooManyChannelProvided: {
+    code: 515,
+    text: 'More than one channel has been provided for the task.'
+  },
+  UsedChannelProvided: {
+    code: 516,
+    text: 'The provided channel has already been used for another task.'
+  },
+  ChannelNotFound: {
+    code: 517,
+    text: "Cannot find a channel for a coroutine with the ID '{%1}'"
+  },
+  MessageNotFound: {
+    code: 518,
+    text: "Cannot find a message with the ID '{%1}'"
   }
 }
 
@@ -66,16 +84,3 @@ export const defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 )
-
-export enum ModuleExt {
-  WASM = '.wasm',
-  SO = '.so',
-  PY = '.py'
-}
-
-export enum ExternReturnType {
-  ArrayBuffer,
-  Boolean,
-  Number,
-  String
-}

@@ -1,6 +1,7 @@
 import { format } from 'node:util'
 import { isMainThread } from 'node:worker_threads'
-import { isPrime } from './math.js'
+import { isPrime, reactiveAdd } from './math.js'
+import type { IChannel } from '../../../src/index.js'
 
 class BaseClass {
   constructor(public _baseData?: number[]) {}
@@ -69,6 +70,10 @@ export class SampleObject extends BaseClass {
     return this.staticData
   }
 
+  static reactiveAdd(channel: IChannel) {
+    return reactiveAdd(channel)
+  }
+
   set data(value) {
     this._data = value
   }
@@ -112,5 +117,9 @@ export class SampleObject extends BaseClass {
 
   format(str: string, ...params: unknown[]) {
     return format(str, ...params)
+  }
+
+  reactiveAdd(channel: IChannel) {
+    return reactiveAdd(channel)
   }
 }

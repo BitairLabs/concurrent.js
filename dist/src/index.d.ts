@@ -1,9 +1,9 @@
 declare const concurrent: IConcurrent
-export { concurrent, ExternReturnType }
+export { concurrent, Channel }
 
 export declare interface IConcurrent {
   config(settings: Partial<ConcurrencySettings>): void
-  import<T>(moduleSrc: URL | string, options: ModuleImportOptions): IConcurrentModule<T>
+  import<T>(moduleSrc: URL | string): IConcurrentModule<T>
   terminate(force?: boolean): Promise<void>
 }
 
@@ -21,15 +21,13 @@ export declare interface IConcurrentModule<T> {
   load: () => Promise<T>
 }
 
-export type ModuleImportOptions = Partial<{
-  extern: {
-    [key: string]: number
-  }
-}>
+declare class Channel implements IChannel {
+  constructor(listener: (onmessage: Channel['onmessage'], postMessage: Channel['postMessage']) => void)
+  onmessage(handler: (name: string | number, ...data: unknown[]) => unknown): void
+  postMessage(name: string | number, ...data: unknown[]): Promise<unknown>
+}
 
-declare enum ExternReturnType {
-  ArrayBuffer,
-  Boolean,
-  Number,
-  String
+export declare interface IChannel {
+  onmessage(handler: (name: string | number, ...data: unknown[]) => unknown): void
+  postMessage(name: string | number, ...data: unknown[]): Promise<unknown>
 }

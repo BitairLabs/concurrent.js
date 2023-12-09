@@ -1,5 +1,6 @@
-import { BrowserWorker } from './worker.js'
+import { Channel } from '../core/channel.js'
 import { Master } from '../core/index.js'
+import { BrowserWorker } from './worker.js'
 
 const concurrent = new Master({
   create: () => {
@@ -8,4 +9,4 @@ const concurrent = new Master({
   }
 })
 
-export { concurrent }
+export { concurrent, Channel }

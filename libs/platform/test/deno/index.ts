@@ -1,8 +1,8 @@
 import { assert } from 'https://deno.land/std@0.181.0/testing/asserts.ts'
-import { concurrent } from '../../build/deno/index.js'
+import { concurrent, Channel } from '../../build/deno/index.js'
+import type { IChannel } from '../../src/index.d.ts'
 
 const SERVICES_SRC = new URL('./sample_services/index.ts', import.meta.url)
-const WASM_SERVICES_SRC = new URL('../../../../apps/sample/wasm/build/index.wasm', import.meta.url)
 const THREAD_INSTANTIATION_DELAY = 0.5
 const MAX_THREADS = 4
 
@@ -48,13 +48,25 @@ Deno.test('should be disabled when the disabled flag is on', async () => {
   concurrent.config({ disabled: false })
 })
 
-Deno.test({
-  name: 'should run an exported wasm function',
-  sanitizeResources: false,
-  sanitizeOps: false,
-  fn: async () => {
-    const services = await concurrent.import(WASM_SERVICES_SRC).load()
-    const result = await services.add(1, 2)
-    assert(result === 3)
-  }
+Deno.test('should run a reactive function', async () => {
+  const arr = [1, 2, 3, 4]
+
+  const reactiveAddChannel = new Channel((onmessage: IChannel['onmessage'], postMessage: IChannel['postMessage']) => {
+    onmessage(async (name, ...data) => {
+      if (name === 'next') {
+        const [i] = data as [number]
+        assert(i <= 3)
+        if (i === arr.length - 1) {
+          const sum = (await postMessage('done')) as number
+          assert(sum === 6)
+        }
+        return arr[i]
+      }
+
+      return undefined
+    })
+  })
+
+  const result = await services.reactiveAdd(reactiveAddChannel)
+  assert(result === 10)
 })

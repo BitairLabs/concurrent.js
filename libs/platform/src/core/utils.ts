@@ -1,4 +1,4 @@
-import { ModuleExt, ValueType } from './constants.js'
+import { ValueType } from './constants.js'
 
 import type { Dict } from './types.js'
 
@@ -53,11 +53,11 @@ export function getProperties(obj: unknown) {
   while (obj) {
     const keys = Reflect.ownKeys(obj)
     for (let i = 0; i < keys.length; i++) {
-      const key = keys[i] as never
+      const key = keys[i] as string | symbol
       if (!isSymbol(key)) {
-        if (!map[key]) {
+        if (!map[key as string]) {
           const descriptor = Reflect.getOwnPropertyDescriptor(obj, key) as PropertyDescriptor
-          map[key] = Reflect.get(ValueType, typeof descriptor?.value)
+          map[key as string] = Reflect.get(ValueType, typeof descriptor?.value)
         }
       }
     }
@@ -99,15 +99,4 @@ export function createObject(properties: Dict<number>) {
   }
 
   return obj
-}
-
-export function isNativeModule(moduleSrc: string) {
-  if (moduleSrc.endsWith(ModuleExt.WASM) || moduleSrc.endsWith(ModuleExt.SO) || moduleSrc.endsWith(ModuleExt.PY))
-    return false
-  else return true
-}
-
-export function isExternModule(moduleSrc: string) {
-  if (moduleSrc.endsWith(ModuleExt.SO) || moduleSrc.endsWith(ModuleExt.PY)) return true
-  else return false
 }

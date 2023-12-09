@@ -13,8 +13,6 @@ var __publicField = (obj, key, value) => {
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
-  ExternReturnType: () => ExternReturnType,
-  ModuleExt: () => ModuleExt,
   TaskType: () => TaskType,
   ThreadMessageType: () => ThreadMessageType,
   ValueType: () => ValueType,
@@ -22,35 +20,37 @@ __export(constants_exports, {
   defaultThreadPoolSettings: () => defaultThreadPoolSettings
 });
 var ThreadMessageType = /* @__PURE__ */ ((ThreadMessageType2) => {
-  ThreadMessageType2[ThreadMessageType2["RunTask"] = 1] = "RunTask";
-  ThreadMessageType2[ThreadMessageType2["ReadTaskResult"] = 2] = "ReadTaskResult";
+  ThreadMessageType2[ThreadMessageType2["Task"] = 1] = "Task";
+  ThreadMessageType2[ThreadMessageType2["DirectMessage"] = 2] = "DirectMessage";
+  ThreadMessageType2[ThreadMessageType2["DirectMessageReplied"] = 3] = "DirectMessageReplied";
+  ThreadMessageType2[ThreadMessageType2["TaskCompleted"] = 4] = "TaskCompleted";
   return ThreadMessageType2;
 })(ThreadMessageType || {});
-var TaskType = /* @__PURE__ */ ((TaskType2) => {
-  TaskType2[TaskType2["InvokeFunction"] = 1] = "InvokeFunction";
-  TaskType2[TaskType2["GetStaticProperty"] = 2] = "GetStaticProperty";
-  TaskType2[TaskType2["SetStaticProperty"] = 3] = "SetStaticProperty";
-  TaskType2[TaskType2["InvokeStaticMethod"] = 4] = "InvokeStaticMethod";
-  TaskType2[TaskType2["InstantiateObject"] = 5] = "InstantiateObject";
-  TaskType2[TaskType2["GetInstanceProperty"] = 6] = "GetInstanceProperty";
-  TaskType2[TaskType2["SetInstanceProperty"] = 7] = "SetInstanceProperty";
-  TaskType2[TaskType2["InvokeInstanceMethod"] = 8] = "InvokeInstanceMethod";
-  TaskType2[TaskType2["DisposeObject"] = 9] = "DisposeObject";
-  return TaskType2;
+var TaskType = /* @__PURE__ */ ((TaskType3) => {
+  TaskType3[TaskType3["InvokeFunction"] = 1] = "InvokeFunction";
+  TaskType3[TaskType3["GetStaticProperty"] = 2] = "GetStaticProperty";
+  TaskType3[TaskType3["SetStaticProperty"] = 3] = "SetStaticProperty";
+  TaskType3[TaskType3["InvokeStaticMethod"] = 4] = "InvokeStaticMethod";
+  TaskType3[TaskType3["InstantiateObject"] = 5] = "InstantiateObject";
+  TaskType3[TaskType3["GetInstanceProperty"] = 6] = "GetInstanceProperty";
+  TaskType3[TaskType3["SetInstanceProperty"] = 7] = "SetInstanceProperty";
+  TaskType3[TaskType3["InvokeInstanceMethod"] = 8] = "InvokeInstanceMethod";
+  TaskType3[TaskType3["DisposeObject"] = 9] = "DisposeObject";
+  return TaskType3;
 })(TaskType || {});
 var ErrorMessage = {
   InternalError: { code: 500, text: "Internal error has occurred." },
-  InvalidMessageType: { code: 502, text: "Can't handle a message with the type '%{0}'." },
-  InvalidTaskType: { code: 503, text: "Can't handle a task with the type '%{0}'" },
-  CoroutineNotFound: { code: 504, text: "Couldn't find a coroutine with the ID '%{0}'." },
-  ObjectNotFound: { code: 505, text: "Couldn't find an object with the ID '%{0}'" },
+  InvalidThreadMessageType: { code: 502, text: "Cannot handle a thread message with the type '%{0}'." },
+  InvalidTaskType: { code: 503, text: "Cannot handle a task with the type '%{0}'" },
+  CoroutineNotFound: { code: 504, text: "Cannot find a coroutine with the ID '%{0}'." },
+  ObjectNotFound: { code: 505, text: "Cannot find an object with the ID '%{0}'" },
   NotRunningOnWorker: { code: 506, text: "This module must be run on a worker." },
   WorkerNotSupported: { code: 507, text: "This browser doesn't support web workers." },
   ThreadAllocationTimeout: { code: 508, text: "Thread allocation failed due to timeout." },
-  MethodAssignment: { code: 509, text: "Can't assign a method." },
+  MethodAssignment: { code: 509, text: "Cannot assign a method." },
   NotAccessibleExport: {
     code: 510,
-    text: "Can't access an export of type '%{0}'. Only top level functions and classes are imported."
+    text: "Cannot access an export of type '%{0}'. Only top level functions and classes are imported."
   },
   ThreadPoolTerminated: { code: 511, text: "Thread pool has been terminated." },
   ThreadTerminated: { code: 512, text: "Thread has been terminated." },
@@ -61,6 +61,22 @@ var ErrorMessage = {
   UnexportedFunction: {
     code: 514,
     text: "No function with the name '%{0}' has been exported in module '{%1}'."
+  },
+  TooManyChannelProvided: {
+    code: 515,
+    text: "More than one channel has been provided for the task."
+  },
+  UsedChannelProvided: {
+    code: 516,
+    text: "The provided channel has already been used for another task."
+  },
+  ChannelNotFound: {
+    code: 517,
+    text: "Cannot find a channel for a coroutine with the ID '{%1}'"
+  },
+  MessageNotFound: {
+    code: 518,
+    text: "Cannot find a message with the ID '{%1}'"
   }
 };
 var ValueType = {
@@ -84,19 +100,6 @@ var defaultConcurrencySettings = Object.assign(
   },
   defaultThreadPoolSettings
 );
-var ModuleExt = /* @__PURE__ */ ((ModuleExt2) => {
-  ModuleExt2["WASM"] = ".wasm";
-  ModuleExt2["SO"] = ".so";
-  ModuleExt2["PY"] = ".py";
-  return ModuleExt2;
-})(ModuleExt || {});
-var ExternReturnType = /* @__PURE__ */ ((ExternReturnType2) => {
-  ExternReturnType2[ExternReturnType2["ArrayBuffer"] = 0] = "ArrayBuffer";
-  ExternReturnType2[ExternReturnType2["Boolean"] = 1] = "Boolean";
-  ExternReturnType2[ExternReturnType2["Number"] = 2] = "Number";
-  ExternReturnType2[ExternReturnType2["String"] = 3] = "String";
-  return ExternReturnType2;
-})(ExternReturnType || {});
 
 // libs/platform/src/core/utils.ts
 function isBoolean(val) {
@@ -154,18 +157,6 @@ function createObject(properties) {
   }
   return obj;
 }
-function isNativeModule(moduleSrc) {
-  if (moduleSrc.endsWith(".wasm" /* WASM */) || moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
-    return false;
-  else
-    return true;
-}
-function isExternModule(moduleSrc) {
-  if (moduleSrc.endsWith(".so" /* SO */) || moduleSrc.endsWith(".py" /* PY */))
-    return true;
-  else
-    return false;
-}
 
 // libs/platform/src/core/error.ts
 var ConcurrencyError = class extends Error {
@@ -174,6 +165,69 @@ var ConcurrencyError = class extends Error {
     const message = format(`Concurrent.js Error: ${text}`, params);
     super(message);
     this.code = code;
+  }
+};
+
+// libs/platform/src/core/message.ts
+var _Message = class {
+  constructor(id, replyCallback) {
+    this.id = id;
+    this.replyCallback = replyCallback;
+  }
+  static create(replyCallback) {
+    this.lastMessageId += 1;
+    return new _Message(this.lastMessageId, replyCallback);
+  }
+  reply(error, result) {
+    this.replyCallback(error, result);
+  }
+};
+var Message = _Message;
+__publicField(Message, "lastMessageId", 0);
+
+// libs/platform/src/core/channel.ts
+var Channel = class {
+  worker;
+  coroutineId;
+  messages;
+  messageHandler;
+  initialized = false;
+  constructor(listener) {
+    this.messages = /* @__PURE__ */ new Map();
+    listener(this.onmessage.bind(this), this.postMessage.bind(this));
+  }
+  init(worker, coroutineId) {
+    this.initialized = true;
+    this.worker = worker;
+    this.coroutineId = coroutineId;
+  }
+  onmessage(handler) {
+    this.messageHandler = handler;
+  }
+  postMessage(name, ...data) {
+    return new Promise((resolve, reject) => {
+      const message = Message.create((error, result) => {
+        if (error)
+          return reject(error);
+        return resolve(result);
+      });
+      this.messages.set(message.id, message);
+      this.worker?.postMessage([
+        2 /* DirectMessage */,
+        [this.coroutineId, [message.id, name, data]]
+      ]);
+    });
+  }
+  async handleMessage(name, data) {
+    if (this.messageHandler)
+      return await this.messageHandler(name, ...data);
+  }
+  async handleMessageReply([messageId, error, result]) {
+    const message = this.messages.get(messageId);
+    if (!message)
+      throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId);
+    await message.reply(error, result);
+    this.messages.delete(messageId);
   }
 };
 
@@ -271,34 +325,21 @@ __publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, 
 
 // libs/platform/src/core/concurrent_module.ts
 var ConcurrentModule = class {
-  constructor(pool, src, options) {
+  constructor(pool, src) {
     this.pool = pool;
     this.src = src;
-    this.options = options;
   }
   async load() {
     const moduleSrc = this.src.toString();
-    const module = isNativeModule(moduleSrc) ? await import(moduleSrc) : {};
+    const module = await import(moduleSrc);
     const thread = await this.pool.getThread();
-    const self = this;
     const cache = {};
     return new Proxy(module, {
       get(obj, key) {
         const _export = Reflect.get(obj, key);
         if (key === "then")
           return;
-        else if (!isNativeModule(moduleSrc)) {
-          if (!Reflect.has(cache, key)) {
-            const threadedFunction = new ThreadedFunction(thread, moduleSrc, key);
-            Reflect.set(cache, key, (...params) => {
-              if (isExternModule(moduleSrc))
-                return threadedFunction.invoke([params, self.options.extern]);
-              else
-                return threadedFunction.invoke(params);
-            });
-          }
-          return Reflect.get(cache, key);
-        } else if (!Reflect.has(obj, key))
+        else if (!Reflect.has(obj, key))
           return;
         else if (!isFunction(_export))
           throw new ConcurrencyError(ErrorMessage.NotAccessibleExport);
@@ -390,15 +431,28 @@ var AsyncSetter = class {
   }
 };
 
+// libs/platform/src/core/common.ts
+function isInvocableTask(type) {
+  return [1 /* InvokeFunction */, 4 /* InvokeStaticMethod */, 8 /* InvokeInstanceMethod */].includes(type);
+}
+function getChannelFlagIndex(type) {
+  return type === 4 /* InvokeStaticMethod */ ? 4 : 3;
+}
+function getTaskArgs(type, data) {
+  const argsIndex = type === 4 /* InvokeStaticMethod */ ? 3 : 2;
+  return data[argsIndex];
+}
+
 // libs/platform/src/core/coroutine.ts
 var _Coroutine = class {
-  constructor(id, callback) {
+  constructor(id, callback, channel) {
     this.id = id;
     this.callback = callback;
+    this.channel = channel;
   }
-  static create(callback) {
+  static create(callback, channel) {
     this.lastCoroutineId += 1;
-    return new _Coroutine(this.lastCoroutineId, callback);
+    return new _Coroutine(this.lastCoroutineId, callback, channel);
   }
   done(error, result) {
     this.callback(error, result);
@@ -417,23 +471,23 @@ var Thread = class {
   coroutines = /* @__PURE__ */ new Map();
   worker;
   terminated = false;
-  locked = false;
-  refs = 0;
   async run(task) {
     if (this.terminated)
       throw new ConcurrencyError(ErrorMessage.ThreadTerminated);
     const result = new Promise((resolve, reject) => {
+      const channel = isInvocableTask(task.type) ? this.prepareChannelIfAny(task.type, task.data) : void 0;
       const coroutine = Coroutine.create((error, result2) => {
         this.coroutines.delete(coroutine.id);
         if (error)
           reject(error);
         else
           resolve(result2);
-      });
+      }, channel);
+      if (channel)
+        channel.init(this.worker, coroutine.id);
       const taskInfo = [coroutine.id, task.type, task.data];
       this.coroutines.set(coroutine.id, coroutine);
-      const message = [1 /* RunTask */, taskInfo];
-      this.postMessage(message);
+      this.worker.postMessage([1 /* Task */, taskInfo]);
     });
     return result;
   }
@@ -444,8 +498,8 @@ var Thread = class {
     this.worker.terminate();
   }
   initWorker() {
-    this.worker.onmessage((message) => {
-      this.handleMessage(message);
+    this.worker.onmessage(async (message) => {
+      await this.handleMessage(message);
     });
     this.worker.onerror((error) => {
       for (const coroutine of this.coroutines.values()) {
@@ -455,19 +509,56 @@ var Thread = class {
       throw error;
     });
   }
-  postMessage(message) {
-    this.worker.postMessage(message);
-  }
-  handleMessage([type, data]) {
-    if (type === 2 /* ReadTaskResult */) {
+  async handleMessage([type, data]) {
+    if (type === 4 /* TaskCompleted */) {
       const [coroutineId, error, result] = data;
       const coroutine = this.coroutines.get(coroutineId);
       if (!coroutine)
         throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
       coroutine.done(error, result);
+    } else if (type === 2 /* DirectMessage */) {
+      const [coroutineId, message] = data;
+      const coroutine = this.coroutines.get(coroutineId);
+      if (!coroutine)
+        throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
+      if (coroutine.channel) {
+        let result, error;
+        try {
+          result = await coroutine.channel.handleMessage(message[1], message[2]);
+        } catch (err) {
+          error = err;
+        }
+        this.worker.postMessage([
+          3 /* DirectMessageReplied */,
+          [coroutine.id, [message[0], error, result]]
+        ]);
+      }
+    } else if (type === 3 /* DirectMessageReplied */) {
+      const [coroutineId, reply] = data;
+      const coroutine = this.coroutines.get(coroutineId);
+      if (!coroutine)
+        throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
+      if (coroutine.channel) {
+        await coroutine.channel.handleMessageReply(reply);
+      }
     } else {
-      throw new ConcurrencyError(ErrorMessage.InvalidMessageType, type);
+      throw new ConcurrencyError(ErrorMessage.InvalidThreadMessageType, type);
     }
+  }
+  prepareChannelIfAny(type, data) {
+    let channel = void 0;
+    const args = getTaskArgs(type, data);
+    if (args.findIndex((arg) => arg instanceof Channel) > 1)
+      throw new ConcurrencyError(ErrorMessage.TooManyChannelProvided);
+    const channelArgIndex = args.findIndex((arg) => arg instanceof Channel);
+    if (channelArgIndex >= 0) {
+      channel = args[channelArgIndex];
+      if (channel.initialized)
+        throw new ConcurrencyError(ErrorMessage.UsedChannelProvided);
+      args.splice(channelArgIndex);
+      data[getChannelFlagIndex(type)] = true;
+    }
+    return channel;
   }
 };
 
@@ -533,12 +624,12 @@ var Master = class {
     if (this.started)
       this.pool.config(this.settings);
   }
-  import(moduleSrc, options = {}) {
+  import(moduleSrc) {
     if (!this.settings.disabled && !this.started)
       this.start();
     const module = this.settings.disabled ? {
       load: () => import(moduleSrc.toString())
-    } : new ConcurrentModule(this.pool, moduleSrc, options);
+    } : new ConcurrentModule(this.pool, moduleSrc);
     return module;
   }
   async terminate(force) {
@@ -601,5 +692,6 @@ var concurrent = new Master({
   }
 });
 export {
+  Channel,
   concurrent
 };

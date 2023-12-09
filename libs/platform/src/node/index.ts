@@ -1,6 +1,6 @@
-import { NodeWorker } from './worker.js'
+import { Channel } from '../core/channel.js'
 import { Master } from '../core/index.js'
-import { ExternReturnType } from '../core/constants.js'
+import { NodeWorker } from './worker.js'
 
 const concurrent = new Master({
   create: () => {
@@ -10,4 +10,4 @@ const concurrent = new Master({
   }
 })
 
-export { concurrent, ExternReturnType }
+export { concurrent, Channel }
