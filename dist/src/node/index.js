@@ -177,9 +177,11 @@ var Channel = class {
   postMessage(name, ...data) {
     return new Promise((resolve, reject) => {
       const message = Message.create((error, result) => {
-        if (error)
-          return reject(error);
-        return resolve(result);
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
       });
       this.messages.set(message.id, message);
       this.worker?.postMessage([
@@ -189,13 +191,15 @@ var Channel = class {
     });
   }
   async handleMessage(name, data) {
-    if (this.messageHandler)
+    if (this.messageHandler) {
       return await this.messageHandler(name, ...data);
+    }
   }
   async handleMessageReply([messageId, error, result]) {
     const message = this.messages.get(messageId);
-    if (!message)
+    if (!message) {
       throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId);
+    }
     await message.reply(error, result);
     this.messages.delete(messageId);
   }

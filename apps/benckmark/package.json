@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "start:node": "node src/index.mjs",
+    "start:deno": "deno run --allow-net --allow-read src/index_deno.js",
+    "start:bun": "bun run src/index.mjs",
+    "benchmark": "npm run start:node && npm run start:deno && npm run start:bun"
+  },
+  "dependencies": {
+    "@bitair/concurrent.js": "^0.8.2",
+    "extra-bigint": "^1.1.17"
+  },
+  "license": "MIT"
+}

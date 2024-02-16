@@ -42,8 +42,9 @@ npm i @bitair/concurrent.js
 import { concurrent } from '@bitair/concurrent.js'
 
 // Import and load a JS module into a worker
-const { SampleObject, sampleFunction } = 
-  await concurrent.import(new URL('./sample_module.js', import.meta.url)).load()
+const { SampleObject, sampleFunction } = await concurrent.import(new URL('./sample_module.js', import.meta.url)).load()
+// Or in a CommonJS module:
+// await concurrent.import(path.join(__dirname, './sample_module.js')).load()
 
 // Run a function
 const result = await sampleFunction(/*...args*/)
@@ -66,10 +67,12 @@ await concurrent.terminate()
 ## Samples
 
 - Browser
+
   - [Basic usage](./apps/sample/browser/)
   - [Tensorflow.js](./apps/sample/browser-tensorflow/)
 
-- Node
+- Node & Bun
+
   - [Basic usage](./apps/sample/node/)
 
 - Deno
@@ -125,8 +128,7 @@ export async function reactiveAdd(channel /*: IChannel */) {
 ```js
 import { concurrent, Channel } from '@bitair/concurrent.js'
 
-const { reactiveAdd } = 
-  await concurrent.import(new URL('./services/index.mjs', import.meta.url)).load()
+const { reactiveAdd } = await concurrent.import(new URL('./services/index.mjs', import.meta.url)).load()
 
 const channel = new Channel((onmessage, postMessage) => {
   const arr = [1, 2, 3, 4]
@@ -171,14 +173,17 @@ concurrent.config(settings: ConcurrencySettings): void
 Configures the global settings of Concurrent.js.
 
 - `settings: ConcurrencySettings`
+
   - `settings.maxThreads: number [default=1]`
-  
+
     The maximum number of available threads to be spawned.
+
   - `settings.threadIdleTimeout: number | typeof Infinity [default=Infinity]`
-  
+
     Number of minutes before Concurrent.js terminates an idle thread.
+
   - `settings.minThreads: number [default=0]`
-  
+
     The number of threads created when Concurrent.js starts and kept alive to avoid thread recreation overhead.
 
 ```ts
@@ -189,7 +194,6 @@ Terminates Concurrent.js.
 
 - `force?: boolean [Not implemented]`
   Forces Concurrent.js to exit immediately without waiting for workers to finish their tasks.
-
 
 ```ts
 class Channel implements IChannel
@@ -204,6 +208,7 @@ Used to send/receive messages to/from functions and methods (instance or static)
 - ```ts
   onmessage(handler: (name: string | number, ...data: unknown[]) => unknown): void
   ```
+
   Sets the event handler for receiving a message. The handler should return a value if a reply is required for the message.
 
 - ```ts

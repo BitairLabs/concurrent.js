@@ -1,0 +1,25 @@
+{
+  "version": "2",
+  "remote": {
+    "https://deno.land/x/concurrentjs@v0.8.2/dist/src/deno/index.js": "869cfc84f3a4b3f09a407bc05774fc5569541bfd2acd44840fc6ce3a812ec550",
+    "https://deno.land/x/concurrentjs@v0.8.2/dist/src/deno/worker_script.js": "cc06f97f55ff71f358161d2798dc6b30fb1ad180671646fa4e03caca1c6b5eb8",
+    "https://deno.land/x/concurrentjs@v0.8.2/mod.ts": "d3157e44a70c32dced1c66349d59fb2a36f8ecbeca2b4e93589d1138e79fe62f"
+  },
+  "npm": {
+    "specifiers": {
+      "@bitair/concurrent.js@^0.8.1": "@bitair/concurrent.js@0.8.1",
+      "extra-bigint@^1.1.10": "extra-bigint@1.1.17",
+      "extra-bigint@^1.1.17": "extra-bigint@1.1.17"
+    },
+    "packages": {
+      "@bitair/concurrent.js@0.8.1": {
+        "integrity": "sha512-nqTG5YgTZUtPob4Xf01UthT+vDako2HgEBeXzNRKX82PBOEj1/K4krr8bkNRuQbM9b2hEmx7q+nVB+jnnK76uw==",
+        "dependencies": {}
+      },
+      "extra-bigint@1.1.17": {
+        "integrity": "sha512-2Fkvshq6a8ZnsxPNM5vLyx3mHGwKXEirCpMupy4g494DRd9E09Toud0PJwq/INDJdL8oAagwAeoMbV7aAcnj5Q==",
+        "dependencies": {}
+      }
+    }
+  }
+}

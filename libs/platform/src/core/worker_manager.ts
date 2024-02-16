@@ -32,9 +32,9 @@ export class WorkerManager {
   channels: Map<number, Channel> = new Map()
   lastObjectId = 0
 
-  async handleMessage(type: ThreadMessageType, data: unknown, worker: { postMessage: IWorker['postMessage'] }) {
+  async handleMessage(type: ThreadMessageType, data: unknown, worker: Pick<IWorker, 'postMessage'>) {
     let reply: ThreadMessage | null = null
-    if (type == ThreadMessageType.Task) {
+    if (type === ThreadMessageType.Task) {
       const [coroutineId, taskType, taskData] = data as TaskInfo
       const [error, result] = await this.handleTask(coroutineId, taskType, taskData, worker)
       reply = [ThreadMessageType.TaskCompleted, [coroutineId, error, result] as TaskResult]
@@ -54,12 +54,7 @@ export class WorkerManager {
     return reply
   }
 
-  private async handleTask(
-    coroutineId: number,
-    type: TaskType,
-    data: unknown[],
-    worker: { postMessage: IWorker['postMessage'] }
-  ) {
+  private async handleTask(coroutineId: number, type: TaskType, data: unknown[], worker: Pick<IWorker, 'postMessage'>) {
     const channel = this.prepareChannelIfAny(type, data, worker, coroutineId)
     let error, result
     switch (type) {
@@ -226,11 +221,11 @@ export class WorkerManager {
     return [error, result]
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async invokeInstanceMethod(
     objectId: number,
     methodName: string,
     args: unknown[] = [],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _hasChannel?: boolean
   ) {
     const obj = this.objects.get(objectId) as object
@@ -264,7 +259,7 @@ export class WorkerManager {
   private prepareChannelIfAny(
     type: TaskType,
     data: unknown[],
-    worker: { postMessage: IWorker['postMessage'] },
+    worker: Pick<IWorker, 'postMessage'>,
     coroutineId: number
   ) {
     let channel

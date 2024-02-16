@@ -1,0 +1,5 @@
+{
+  "imports": {
+      "extra-bigint": "npm:extra-bigint@^1.1.10"
+  }
+}
