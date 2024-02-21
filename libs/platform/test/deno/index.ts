@@ -43,7 +43,7 @@ Deno.test('should be disabled when the disabled flag is on', async () => {
   concurrent.config({ disabled: true })
 
   const services = await concurrent.import(SERVICES_SRC).load()
-  assert((await services.isWorker()) == false)
+  assert((await services.isWorker()) === false)
 
   concurrent.config({ disabled: false })
 })

@@ -1,0 +1,35 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "npm:extra-bigint@^1.1.10": "npm:extra-bigint@1.1.17"
+    },
+    "npm": {
+      "extra-bigint@1.1.17": {
+        "integrity": "sha512-2Fkvshq6a8ZnsxPNM5vLyx3mHGwKXEirCpMupy4g494DRd9E09Toud0PJwq/INDJdL8oAagwAeoMbV7aAcnj5Q==",
+        "dependencies": {}
+      }
+    }
+  },
+  "remote": {
+    "https://deno.land/x/concurrentjs@v0.8.2/dist/src/deno/index.js": "f6f9f80c8d4c803a693d25e55df258540a4c947fcde1e0f46bd407c7b4504312",
+    "https://deno.land/x/concurrentjs@v0.8.2/dist/src/deno/worker_script.js": "d6b5ff9a019c530d9d6bcf7ad94e9edcd3632ca6efc36b6e8aeda5cedfc9c75e",
+    "https://deno.land/x/concurrentjs@v0.8.2/mod.ts": "d3157e44a70c32dced1c66349d59fb2a36f8ecbeca2b4e93589d1138e79fe62f"
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:extra-bigint@^1.1.10"
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@bitair/concurrent.js@^0.8.2",
+        "npm:@tsconfig/strictest@^1.0.2",
+        "npm:esbuild@^0.17.8",
+        "npm:extra-bigint@^1.1.10",
+        "npm:http-server@^14.1.1",
+        "npm:puppeteer@^22.1.0",
+        "npm:typescript@^4.9.4"
+      ]
+    }
+  }
+}

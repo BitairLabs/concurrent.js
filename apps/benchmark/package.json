@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "scripts": {
+    "start": "bash src/browser_app/scripts/build.sh && PORT=8080 npx http-server src/browser_app/static",
+    "benchmark": "PORT=8080 bash ./scripts/benchmark.sh"
+  },
+  "dependencies": {
+    "@bitair/concurrent.js": "^0.8.2",
+    "extra-bigint": "npm:extra-bigint@^1.1.10",
+    "http-server": "^14.1.1",
+    "puppeteer": "^22.1.0"
+  },
+  "devDependencies": {
+    "@tsconfig/strictest": "^1.0.2",
+    "esbuild": "^0.17.8",
+    "typescript": "^4.9.4"
+  },
+  "license": "MIT"
+}

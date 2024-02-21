@@ -261,9 +261,11 @@ var Channel = class {
   postMessage(name, ...data) {
     return new Promise((resolve, reject) => {
       const message = Message.create((error, result) => {
-        if (error)
-          return reject(error);
-        return resolve(result);
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
       });
       this.messages.set(message.id, message);
       this.worker?.postMessage([
@@ -273,13 +275,15 @@ var Channel = class {
     });
   }
   async handleMessage(name, data) {
-    if (this.messageHandler)
+    if (this.messageHandler) {
       return await this.messageHandler(name, ...data);
+    }
   }
   async handleMessageReply([messageId, error, result]) {
     const message = this.messages.get(messageId);
-    if (!message)
+    if (!message) {
       throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId);
+    }
     await message.reply(error, result);
     this.messages.delete(messageId);
   }
@@ -307,7 +311,7 @@ var WorkerManager = class {
   lastObjectId = 0;
   async handleMessage(type, data, worker) {
     let reply = null;
-    if (type == 1 /* Task */) {
+    if (type === 1 /* Task */) {
       const [coroutineId, taskType, taskData] = data;
       const [error, result] = await this.handleTask(coroutineId, taskType, taskData, worker);
       reply = [4 /* TaskCompleted */, [coroutineId, error, result]];
@@ -476,7 +480,6 @@ var WorkerManager = class {
     }
     return [error, result];
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async invokeInstanceMethod(objectId, methodName, args = [], _hasChannel) {
     const obj = this.objects.get(objectId);
     if (!obj)

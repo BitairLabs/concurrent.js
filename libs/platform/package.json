@@ -5,7 +5,8 @@
     "build": "bash ./scripts/build.sh",
     "test:node": "mocha --no-timeout",
     "test:deno": "deno test test/deno/index.ts --allow-read --trace-ops",
-    "test": "npm run test:node && npm run test:deno"
+    "test:bun": "bun test ./test/bun/index.ts",
+    "test": "npm run test:node && npm run test:deno && npm run test:bun"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",

@@ -1,3 +1,9 @@
+## v0.8.2
+
+- Bun is supported via the Node.js package.
+- Tests cases are added for Bun.
+- Benchmark project is added.
+
 ## v0.8.0
 
 - Supporting language interop is dropped. The @bitair/linker.js package should be used instead.

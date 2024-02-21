@@ -5,7 +5,7 @@ import { Message } from './message.js'
 import type { IWorker, MessageReply, CoroutineMessage, ThreadMessage, IChannel } from './types.js'
 
 export class Channel implements IChannel {
-  worker?: { postMessage: IWorker['postMessage'] }
+  worker?: Pick<IWorker, 'postMessage'>
   coroutineId?: number
   messages: Map<number, Message>
   messageHandler?: (name: string | number, ...data: unknown[]) => void
@@ -16,7 +16,7 @@ export class Channel implements IChannel {
     listener(this.onmessage.bind(this), this.postMessage.bind(this))
   }
 
-  init(worker: { postMessage: IWorker['postMessage'] }, coroutineId: number) {
+  init(worker: Pick<IWorker, 'postMessage'>, coroutineId: number) {
     this.initialized = true
     this.worker = worker
     this.coroutineId = coroutineId
@@ -29,8 +29,11 @@ export class Channel implements IChannel {
   postMessage(name: string | number, ...data: unknown[]) {
     return new Promise((resolve, reject) => {
       const message = Message.create((error, result) => {
-        if (error) return reject(error)
-        return resolve(result)
+        if (error) {
+          reject(error)
+        } else {
+          resolve(result)
+        }
       })
       this.messages.set(message.id, message)
       this.worker?.postMessage([
@@ -41,12 +44,16 @@ export class Channel implements IChannel {
   }
 
   async handleMessage(name: string | number, data: unknown[]) {
-    if (this.messageHandler) return await this.messageHandler(name, ...data)
+    if (this.messageHandler) {
+      return await this.messageHandler(name, ...data)
+    }
   }
 
   async handleMessageReply([messageId, error, result]: MessageReply) {
     const message = this.messages.get(messageId)
-    if (!message) throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId)
+    if (!message) {
+      throw new ConcurrencyError(ErrorMessage.MessageNotFound, messageId)
+    }
     await message.reply(error, result)
     this.messages.delete(messageId)
   }

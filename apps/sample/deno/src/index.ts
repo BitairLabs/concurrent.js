@@ -1,4 +1,4 @@
-import { concurrent } from 'https://deno.land/x/concurrentjs@v0.8.1/mod.ts'
+import { concurrent } from 'https://deno.land/x/concurrentjs@v0.8.2/mod.ts'
 
 const { factorial } = await concurrent.import(new URL('./services/index.ts', import.meta.url)).load()
 

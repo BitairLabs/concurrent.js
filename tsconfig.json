@@ -7,5 +7,5 @@
     "downlevelIteration": true,
     "skipLibCheck": false
   },
-  "exclude": ["*.js"]
+  "exclude": ["**/*.js"]
 }

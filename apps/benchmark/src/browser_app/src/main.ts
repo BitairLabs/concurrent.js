@@ -9,9 +9,6 @@ concurrent.config({
   maxThreads: MAX_THREADS
 })
 
-const bodyElm = document.querySelector('body') as HTMLBodyElement
-
-const progress = setInterval(() => (bodyElm.innerHTML += '■'), 1000) // Using this to show that the main thread is not blocked
 const start = performance.now()
 
 const tasks = []
@@ -22,11 +19,8 @@ for (let i = 0; i < MAX_THREADS; i++) {
 await Promise.all(tasks)
 
 const end = performance.now()
-clearInterval(progress)
 
 const duration = Math.trunc(end - start) / 1000
-bodyElm.innerHTML += ` ${duration}s`
-console.log("Execution Time: %s", duration)
-
+console.log('__DONE__', duration)
 
 await concurrent.terminate()

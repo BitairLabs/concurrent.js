@@ -2,7 +2,7 @@
   "scripts": {
     "lint": "npx tsc --noEmit",
     "build": "bash ./scripts/build.sh",
-    "start": "npx http-server static"
+    "start": "npm run build && npx http-server static"
   },
   "dependencies": {
     "http-server": "^14.1.1",

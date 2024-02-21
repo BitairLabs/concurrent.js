@@ -9,7 +9,7 @@ Concurrent.js is a library that enables non-blocking computation on JavaScript R
 - [x] Sharing workers
 - [x] Parallel execution
 - [x] Reactive concurrency
-- [ ] Sandboxing
+- [ ] Isolation
 
 ## Technical Facts
 
@@ -38,12 +38,22 @@ npm i @bitair/concurrent.js
 
 ## Usage
 
+At its highest level of design, Concurrent.js is a dynamic module importer that loads a module into a web worker:
+
 ```js
 import { concurrent } from '@bitair/concurrent.js'
+// In Deno
+// import { concurrent } from 'https://deno.land/x/concurrentjs@v0.8.2/mod.ts'
 
-// Import and load a JS module into a worker
-const { SampleObject, sampleFunction } = 
-  await concurrent.import(new URL('./sample_module.js', import.meta.url)).load()
+// Import a module
+const MyModule = concurrent.import(new URL('./sample_module.js', import.meta.url))
+// In a CommonJS module
+// const MyModule = concurrent.import(path.join(__dirname, 'sample_module.js'))
+
+// Load it into a web worker
+const { SampleObject, sampleFunction } = await MyModule.load()
+// Load it into another web worker 
+// const { SampleObject: SampleObject2, sampleFunction: sampleFunction2 } = await MyModule.load()
 
 // Run a function
 const result = await sampleFunction(/*...args*/)
@@ -66,16 +76,58 @@ await concurrent.terminate()
 ## Samples
 
 - Browser
-  - [Basic usage](./apps/sample/browser/)
-  - [Tensorflow.js](./apps/sample/browser-tensorflow/)
 
-- Node
+  - [Basic usage](./apps/sample/browser/)
+  - [Tensorflow.js usage](./apps/sample/browser-tensorflow/)
+
+- Node & Bun
+
   - [Basic usage](./apps/sample/node/)
 
 - Deno
   - [Basic usage](./apps/sample/deno/)
 
+## Benchmark
+
+The following results demonstrate the average execution time and CPU usage of running 10 concurrent calculations (10 iterations) of the factorial of 50,000 on various JavaScript runtime environments (RTEs). These calculations were performed on a Quad-core AMD APU with a base clock rate of 2.2GHz within a freshly installed isolated Ubuntu VM.
+
+
+(There are 213,237 digits in the factorial of 50,000) 
+
+|  | RTE      | JS Engine | Execution Time | CPU Usage |
+|---|---------------------|----------------------|------------------------|-----------|
+| 1 | **Deno** (v1.40) | V8          | 7.9168s                 | 100%      |
+| 2 | **Chrome*** (v121.0) | V8     | 7.919s                 | 100%      |
+| 3 | **Node** (v20.11) | V8         | 8.117s                   | 100%      |
+| 4 | **Servo** (v0.0.1-c94d584) | SpiderMonkey   | 31.267s                  | 99%       |
+| 5 | **LibreWolf** (122.0) | SpiderMonkey  | 35.417s          | 92%       |
+| 6 | **Firefox*** (v125.0) | SpiderMonkey  | 49.061s          | 95%       |
+| 7 | **Bun** (v1.0.26) | JavaScriptCore  | 51.502s              | 99%       |
+| 8 | **GNOME Web** (v45.2) | JavaScriptCore  | 59.058s         | 75%       |
+
+* A headless environment was used for benchmarking.
+  
+To benchmark Node, Deno, Bun RTEs as well as Chrome and Firefox browsers use the [benchmarking app](./apps/benchmark/):
+```bash
+git clone https://github.com/bitair-org/concurrent.js.git
+cd concurrent.js/apps/benchmark
+npm i
+npm start # This command starts a web server required by the headless browsers. Do not open the http://127.0.0.1:8080 address
+npm run benchmark 
+```
+
+For benchmarking other browsers, use the [browser basic usage sample](./apps/sample/browser)
+```bash
+git clone https://github.com/bitair-org/concurrent.js.git
+cd concurrent.js/apps/sample/browser
+npm i
+npm start # Open the http://127.0.0.1:8080 address in the target browser
+```
+
+
 ## Parallelism
+
+To run each function call or object instance on a separate CPU core, the `load` method of the imported module must be called for each function call or object instance individually:
 
 ```js
 import { concurrent } from '@bitair/concurrent.js'
@@ -97,6 +149,7 @@ await concurrent.terminate()
 ```
 
 ## Reactive Concurrency
+The reactive concurrency feature provides a bidirectional channel for messaging. A message can be replied to by returning a value:
 
 `services/index.mjs`
 
@@ -125,8 +178,7 @@ export async function reactiveAdd(channel /*: IChannel */) {
 ```js
 import { concurrent, Channel } from '@bitair/concurrent.js'
 
-const { reactiveAdd } = 
-  await concurrent.import(new URL('./services/index.mjs', import.meta.url)).load()
+const { reactiveAdd } = await concurrent.import(new URL('./services/index.mjs', import.meta.url)).load()
 
 const channel = new Channel((onmessage, postMessage) => {
   const arr = [1, 2, 3, 4]
@@ -171,14 +223,17 @@ concurrent.config(settings: ConcurrencySettings): void
 Configures the global settings of Concurrent.js.
 
 - `settings: ConcurrencySettings`
+
   - `settings.maxThreads: number [default=1]`
-  
+
     The maximum number of available threads to be spawned.
+
   - `settings.threadIdleTimeout: number | typeof Infinity [default=Infinity]`
-  
+
     Number of minutes before Concurrent.js terminates an idle thread.
+
   - `settings.minThreads: number [default=0]`
-  
+
     The number of threads created when Concurrent.js starts and kept alive to avoid thread recreation overhead.
 
 ```ts
@@ -189,7 +244,6 @@ Terminates Concurrent.js.
 
 - `force?: boolean [Not implemented]`
   Forces Concurrent.js to exit immediately without waiting for workers to finish their tasks.
-
 
 ```ts
 class Channel implements IChannel
@@ -204,6 +258,7 @@ Used to send/receive messages to/from functions and methods (instance or static)
 - ```ts
   onmessage(handler: (name: string | number, ...data: unknown[]) => unknown): void
   ```
+
   Sets the event handler for receiving a message. The handler should return a value if a reply is required for the message.
 
 - ```ts
@@ -214,3 +269,4 @@ Used to send/receive messages to/from functions and methods (instance or static)
 ## License
 
 [MIT License](./LICENSE)
+

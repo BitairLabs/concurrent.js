@@ -1,5 +1,5 @@
 {
-  "@tsconfig/strictest": "^1.0.2",
+  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
     "module": "ESNext",
     "target": "ESNext",
