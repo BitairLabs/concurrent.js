@@ -1,3 +1,10 @@
+## v0.9.0
+
+- Upgraded all dependency packages to the latest version.
+- Replaced `ts-node` with `@bitair/lift`.
+- Replaced `mocha` and `chai` with Node.js's native test runner.
+- Refactored the project folder structure.
+
 ## v0.8.2
 
 - Bun is supported via the Node.js package.
@@ -84,7 +91,7 @@
 
 ## v0.5.3
 
-- Resolved [issue#2](https://github.com/bitair-org/concurrent.js/issues/2).
+- Resolved [issue#2](https://github.com/bitairlabs/concurrent.js/issues/2).
 
 ## v0.5.2
 

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="">
+  <head>
+    <meta charset="utf-8" />
+    <title>Concurrent.js - Basic Usage Sample</title>
+    <script type="module" src="scripts/build/main.js"></script>
+    <style>
+      body {
+        margin: 5%;
+      }
+      .progressbar {
+        font-size: xx-small;
+        color: deepskyblue;
+      }
+      .checked {
+        color: limegreen;
+      }
+      .result {
+        margin-top: 3px;
+      }
+      .hidden {
+        visibility: hidden;
+      }
+    </style>
+  </head>
+
+  <h3>Non-Blocking Concurrent Computation</h3>
+  <div>
+    Running <span id="task_count"></span> concurrent factorial(<span id="n_value"></span>) calculations in the
+    background:
+  </div>
+  <br />
+
+  <div id="progress" class="progressbar"></div>
+  <br />
+
+  <div id="results"></div>
+  <br />
+
+  <div id="summary" class="hidden">
+    All computed in <span id="duration"></span> seconds. The result of factorial
+    <span id="summary_n_value"></span> contains <span id="digit_count"></span> digits.
+  </div>
+
+  <body></body>
+</html>

@@ -1,11 +1,11 @@
 {
   "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
+    "noEmit": true,
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "NodeNext",
-    "downlevelIteration": true,
-    "skipLibCheck": false
+    "skipLibCheck": false,
+    "allowImportingTsExtensions": true
   },
   "exclude": ["**/*.js"]
 }

@@ -9,17 +9,24 @@ touch index.mjs
 cat >./index.mjs <<EOF
 import { concurrent } from '@bitair/concurrent.js'
 
-// Import it as usual to see the difference.
+// import the package as usual to see the difference
 // import { factorial } from 'extra-bigint'
 
 const { factorial } = await concurrent.import('extra-bigint').load()
 
-// This would indicate whether the main process is blocked or not while calculating the n factorial.
+// Create an interval to show that the main thread remains responsive
 const progress = setInterval(() => process.stdout.write('⯀'), 100)
 
-const n = 50_000n
+const n = 100_000n
+
+console.log('\nNon-Blocking Computation of Factorial(%s)', n.toLocaleString())
+
 const result = await factorial(n)
-console.log('\nThere are %d digits in %d factorial.', BigInt(result).toString().length, n.toString())
+
+console.log(
+  '\nThe result contains %s digits.',
+  BigInt(result).toString().length.toLocaleString()
+)
 
 clearInterval(progress)
 

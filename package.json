@@ -3,23 +3,23 @@
     "clean": "bash scripts/clean.sh",
     "format": "prettier --write '**/*.{js,ts,tsx,md,yaml}'",
     "lint": "npx eslint .; pnpm -r --filter=./**/* lint",
-    "build": "pnpm -r --filter=./**/* build",
     "test": "pnpm -r --filter=./**/* test",
-    "test:platform": "pnpm -r --filter=./libs/platform test",
     "dist": "bash scripts/dist.sh",
     "publish:dry": "npm run dist && npm publish ./dist --dry-run --access public",
     "publish": "npm publish ./dist --access public"
   },
   "devDependencies": {
-    "@tsconfig/strictest": "^1.0.2",
-    "@types/node": "^18.13.0",
-    "@typescript-eslint/eslint-plugin": "^5.52.0",
-    "@typescript-eslint/parser": "^5.52.0",
-    "eslint": "^8.34.0",
-    "eslint-config-prettier": "^8.6.0",
-    "prettier": "^2.8.4",
-    "typescript": "^4.9.5",
-    "esbuild": "^0.17.8"
+    "@eslint/js": "^10.0.1",
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "^24.1.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3"
   },
   "license": "MIT"
 }

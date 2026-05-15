@@ -3,7 +3,6 @@ var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
@@ -17,26 +16,23 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
 
-// libs/platform/src/node/index.cts
-var node_exports = {};
-__export(node_exports, {
+// lib/src/node/index.cts
+var index_exports = {};
+__export(index_exports, {
   concurrent: () => concurrent
 });
-module.exports = __toCommonJS(node_exports);
+module.exports = __toCommonJS(index_exports);
 
-// libs/platform/src/node/worker.ts
+// lib/src/node/worker.ts
 var import_worker_threads = require("worker_threads");
 
-// libs/platform/src/core/worker_base.ts
+// lib/src/core/worker_base.ts
 var WorkerBase = class {
   constructor(_worker) {
     this._worker = _worker;
   }
+  _worker;
   messageHandler;
   errorHandler;
   postMessage(message) {
@@ -53,23 +49,21 @@ var WorkerBase = class {
   }
 };
 
-// libs/platform/src/node/worker.ts
+// lib/src/node/worker.ts
 var NodeWorker = class extends WorkerBase {
   constructor(scriptSrc) {
     const worker = new import_worker_threads.Worker(scriptSrc);
     super(worker);
     worker.on("message", (message) => {
-      if (this.messageHandler)
-        this.messageHandler(message);
+      if (this.messageHandler) this.messageHandler(message);
     });
     worker.on("error", (error) => {
-      if (this.errorHandler)
-        this.errorHandler(error);
+      if (this.errorHandler) this.errorHandler(error);
     });
   }
 };
 
-// libs/platform/src/core/constants.ts
+// lib/src/core/constants.ts
 var TaskType = /* @__PURE__ */ ((TaskType3) => {
   TaskType3[TaskType3["InvokeFunction"] = 1] = "InvokeFunction";
   TaskType3[TaskType3["GetStaticProperty"] = 2] = "GetStaticProperty";
@@ -135,7 +129,7 @@ var defaultConcurrencySettings = Object.assign(
   defaultThreadPoolSettings
 );
 
-// libs/platform/src/core/utils.ts
+// lib/src/core/utils.ts
 function isBoolean(val) {
   return typeof val === "boolean";
 }
@@ -177,7 +171,7 @@ function createObject(properties) {
           case 5:
             return "";
           case 6:
-            return Symbol();
+            return /* @__PURE__ */ Symbol();
           case 7:
             return new Function();
           case 8:
@@ -192,7 +186,7 @@ function createObject(properties) {
   return obj;
 }
 
-// libs/platform/src/core/error.ts
+// lib/src/core/error.ts
 var ConcurrencyError = class extends Error {
   code;
   constructor({ code, text }, ...params) {
@@ -202,23 +196,27 @@ var ConcurrencyError = class extends Error {
   }
 };
 
-// libs/platform/src/core/task.ts
+// lib/src/core/task.ts
 var Task = class {
   constructor(type, data) {
     this.type = type;
     this.data = data;
-    if (!TaskType[type])
-      throw new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
+    if (!TaskType[type]) throw new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
   }
+  type;
+  data;
 };
 
-// libs/platform/src/core/threaded_function.ts
+// lib/src/core/threaded_function.ts
 var ThreadedFunction = class {
   constructor(thread, moduleSrc, exportName) {
     this.thread = thread;
     this.moduleSrc = moduleSrc;
     this.exportName = exportName;
   }
+  thread;
+  moduleSrc;
+  exportName;
   async invoke(args) {
     const task = new Task(1 /* InvokeFunction */, [this.moduleSrc, this.exportName, args]);
     const result = await this.thread.run(task);
@@ -255,13 +253,23 @@ var ThreadedFunction = class {
   }
 };
 
-// libs/platform/src/core/threaded_object.ts
-var _ThreadedObject = class {
+// lib/src/core/threaded_object.ts
+var ThreadedObject = class _ThreadedObject {
   constructor(thread, id, target) {
     this.thread = thread;
     this.id = id;
     this.target = target;
   }
+  thread;
+  id;
+  target;
+  static objectRegistry = new FinalizationRegistry(({ id, threadRef }) => {
+    const thread = threadRef.deref();
+    if (thread) {
+      const task = new Task(9 /* DisposeObject */, [id]);
+      thread.run(task).finally();
+    }
+  });
   static async create(thread, moduleSrc, exportName, ctorArgs) {
     const task = new Task(5 /* InstantiateObject */, [moduleSrc, exportName, ctorArgs]);
     const [id, properties] = await thread.run(task);
@@ -285,21 +293,15 @@ var _ThreadedObject = class {
     return result;
   }
 };
-var ThreadedObject = _ThreadedObject;
-__publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, threadRef }) => {
-  const thread = threadRef.deref();
-  if (thread) {
-    const task = new Task(9 /* DisposeObject */, [id]);
-    thread.run(task).finally();
-  }
-}));
 
-// libs/platform/src/core/concurrent_module.ts
+// lib/src/core/concurrent_module.ts
 var ConcurrentModule = class {
   constructor(pool, src) {
     this.pool = pool;
     this.src = src;
   }
+  pool;
+  src;
   async load() {
     const moduleSrc = this.src.toString();
     const module2 = await import(moduleSrc);
@@ -308,15 +310,11 @@ var ConcurrentModule = class {
     return new Proxy(module2, {
       get(obj, key) {
         const _export = Reflect.get(obj, key);
-        if (key === "then")
-          return;
-        else if (!Reflect.has(obj, key))
-          return;
-        else if (!isFunction(_export))
-          throw new ConcurrencyError(ErrorMessage.NotAccessibleExport);
+        if (key === "then") return;
+        else if (!Reflect.has(obj, key)) return;
+        else if (!isFunction(_export)) throw new ConcurrencyError(ErrorMessage.NotAccessibleExport);
         else {
-          if (!Reflect.has(cache, key))
-            Reflect.set(cache, key, createThreadedFunction(thread, moduleSrc, _export));
+          if (!Reflect.has(cache, key)) Reflect.set(cache, key, createThreadedFunction(thread, moduleSrc, _export));
           return Reflect.get(cache, key);
         }
       }
@@ -328,21 +326,15 @@ function createThreadedFunction(thread, moduleSrc, target) {
   return new Proxy(target, {
     get(target2, key) {
       const prop = Reflect.get(target2, key);
-      if (!Reflect.has(target2, key))
-        return;
-      else if (prop instanceof AsyncSetter)
-        return prop.wait();
-      else if (!isFunction(prop))
-        return threadedFunction.getStaticProperty(key);
-      else
-        return (...params) => threadedFunction.invokeStaticMethod(key, params);
+      if (!Reflect.has(target2, key)) return;
+      else if (prop instanceof AsyncSetter) return prop.wait();
+      else if (!isFunction(prop)) return threadedFunction.getStaticProperty(key);
+      else return (...params) => threadedFunction.invokeStaticMethod(key, params);
     },
     set(target2, key, value) {
       const prop = Reflect.get(target2, key);
-      if (!Reflect.has(target2, key))
-        return false;
-      else if (isFunction(prop))
-        throw new ConcurrencyError(ErrorMessage.MethodAssignment);
+      if (!Reflect.has(target2, key)) return false;
+      else if (isFunction(prop)) throw new ConcurrencyError(ErrorMessage.MethodAssignment);
       else {
         const setter = new AsyncSetter(
           () => threadedFunction.setStaticProperty(key, value).then(() => {
@@ -366,21 +358,15 @@ async function createThreadedObject(thread, moduleSrc, exportName, args) {
   return new Proxy(threadedObject.target, {
     get(target, key) {
       const prop = Reflect.get(target, key);
-      if (!Reflect.has(target, key))
-        return;
-      else if (prop instanceof AsyncSetter)
-        return prop.wait();
-      else if (isFunction(prop))
-        return (...params) => threadedObject.invoke(key, params);
-      else
-        return threadedObject.getProperty(key);
+      if (!Reflect.has(target, key)) return;
+      else if (prop instanceof AsyncSetter) return prop.wait();
+      else if (isFunction(prop)) return (...params) => threadedObject.invoke(key, params);
+      else return threadedObject.getProperty(key);
     },
     set(target, key, value) {
       const prop = Reflect.get(target, key);
-      if (!Reflect.has(target, key))
-        return false;
-      else if (isFunction(prop))
-        throw new ConcurrencyError(ErrorMessage.MethodAssignment);
+      if (!Reflect.has(target, key)) return false;
+      else if (isFunction(prop)) throw new ConcurrencyError(ErrorMessage.MethodAssignment);
       else {
         const setter = new AsyncSetter(
           () => threadedObject.setProperty(key, value).then(() => {
@@ -397,17 +383,21 @@ var AsyncSetter = class {
   constructor(setter) {
     this.setter = setter;
   }
+  setter;
   wait() {
     return this.setter();
   }
 };
 
-// libs/platform/src/core/message.ts
-var _Message = class {
+// lib/src/core/message.ts
+var Message = class _Message {
   constructor(id, replyCallback) {
     this.id = id;
     this.replyCallback = replyCallback;
   }
+  id;
+  replyCallback;
+  static lastMessageId = 0;
   static create(replyCallback) {
     this.lastMessageId += 1;
     return new _Message(this.lastMessageId, replyCallback);
@@ -416,10 +406,8 @@ var _Message = class {
     this.replyCallback(error, result);
   }
 };
-var Message = _Message;
-__publicField(Message, "lastMessageId", 0);
 
-// libs/platform/src/core/channel.ts
+// lib/src/core/channel.ts
 var Channel = class {
   worker;
   coroutineId;
@@ -469,7 +457,7 @@ var Channel = class {
   }
 };
 
-// libs/platform/src/core/common.ts
+// lib/src/core/common.ts
 function isInvocableTask(type) {
   return [1 /* InvokeFunction */, 4 /* InvokeStaticMethod */, 8 /* InvokeInstanceMethod */].includes(type);
 }
@@ -481,13 +469,17 @@ function getTaskArgs(type, data) {
   return data[argsIndex];
 }
 
-// libs/platform/src/core/coroutine.ts
-var _Coroutine = class {
+// lib/src/core/coroutine.ts
+var Coroutine = class _Coroutine {
   constructor(id, callback, channel) {
     this.id = id;
     this.callback = callback;
     this.channel = channel;
   }
+  id;
+  callback;
+  channel;
+  static lastCoroutineId = 0;
   static create(callback, channel) {
     this.lastCoroutineId += 1;
     return new _Coroutine(this.lastCoroutineId, callback, channel);
@@ -496,33 +488,28 @@ var _Coroutine = class {
     this.callback(error, result);
   }
 };
-var Coroutine = _Coroutine;
-__publicField(Coroutine, "lastCoroutineId", 0);
 
-// libs/platform/src/core/thread.ts
+// lib/src/core/thread.ts
 var Thread = class {
   constructor(workerFactory) {
     this.workerFactory = workerFactory;
     this.worker = workerFactory.create();
     this.initWorker();
   }
+  workerFactory;
   coroutines = /* @__PURE__ */ new Map();
   worker;
   terminated = false;
   async run(task) {
-    if (this.terminated)
-      throw new ConcurrencyError(ErrorMessage.ThreadTerminated);
+    if (this.terminated) throw new ConcurrencyError(ErrorMessage.ThreadTerminated);
     const result = new Promise((resolve, reject) => {
       const channel = isInvocableTask(task.type) ? this.prepareChannelIfAny(task.type, task.data) : void 0;
       const coroutine = Coroutine.create((error, result2) => {
         this.coroutines.delete(coroutine.id);
-        if (error)
-          reject(error);
-        else
-          resolve(result2);
+        if (error) reject(error);
+        else resolve(result2);
       }, channel);
-      if (channel)
-        channel.init(this.worker, coroutine.id);
+      if (channel) channel.init(this.worker, coroutine.id);
       const taskInfo = [coroutine.id, task.type, task.data];
       this.coroutines.set(coroutine.id, coroutine);
       this.worker.postMessage([1 /* Task */, taskInfo]);
@@ -551,14 +538,12 @@ var Thread = class {
     if (type === 4 /* TaskCompleted */) {
       const [coroutineId, error, result] = data;
       const coroutine = this.coroutines.get(coroutineId);
-      if (!coroutine)
-        throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
+      if (!coroutine) throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
       coroutine.done(error, result);
     } else if (type === 2 /* DirectMessage */) {
       const [coroutineId, message] = data;
       const coroutine = this.coroutines.get(coroutineId);
-      if (!coroutine)
-        throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
+      if (!coroutine) throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
       if (coroutine.channel) {
         let result, error;
         try {
@@ -574,8 +559,7 @@ var Thread = class {
     } else if (type === 3 /* DirectMessageReplied */) {
       const [coroutineId, reply] = data;
       const coroutine = this.coroutines.get(coroutineId);
-      if (!coroutine)
-        throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
+      if (!coroutine) throw new ConcurrencyError(ErrorMessage.CoroutineNotFound, coroutineId);
       if (coroutine.channel) {
         await coroutine.channel.handleMessageReply(reply);
       }
@@ -591,8 +575,7 @@ var Thread = class {
     const channelArgIndex = args.findIndex((arg) => arg instanceof Channel);
     if (channelArgIndex >= 0) {
       channel = args[channelArgIndex];
-      if (channel.initialized)
-        throw new ConcurrencyError(ErrorMessage.UsedChannelProvided);
+      if (channel.initialized) throw new ConcurrencyError(ErrorMessage.UsedChannelProvided);
       args.splice(channelArgIndex);
       data[getChannelFlagIndex(type)] = true;
     }
@@ -600,7 +583,7 @@ var Thread = class {
   }
 };
 
-// libs/platform/src/core/thread_pool.ts
+// lib/src/core/thread_pool.ts
 var ThreadPool = class {
   constructor(workerFactory, settings) {
     this.workerFactory = workerFactory;
@@ -611,6 +594,8 @@ var ThreadPool = class {
       }
     }
   }
+  workerFactory;
+  settings;
   turn = 0;
   threads = [];
   terminated = false;
@@ -618,12 +603,9 @@ var ThreadPool = class {
     Object.assign(this.settings, settings);
   }
   async getThread() {
-    if (this.terminated)
-      throw new ConcurrencyError(ErrorMessage.ThreadPoolTerminated);
-    if (this.threads.length < this.settings.maxThreads)
-      this.addThread();
-    if (this.turn > this.threads.length - 1)
-      this.turn = 0;
+    if (this.terminated) throw new ConcurrencyError(ErrorMessage.ThreadPoolTerminated);
+    if (this.threads.length < this.settings.maxThreads) this.addThread();
+    if (this.turn > this.threads.length - 1) this.turn = 0;
     const thread = this.threads[this.turn];
     this.turn += 1;
     return thread;
@@ -642,12 +624,13 @@ var ThreadPool = class {
   }
 };
 
-// libs/platform/src/core/master.ts
+// lib/src/core/master.ts
 var Master = class {
   constructor(workerFactory) {
     this.workerFactory = workerFactory;
     this.settings = defaultConcurrencySettings;
   }
+  workerFactory;
   settings;
   pool;
   started = false;
@@ -659,12 +642,10 @@ var Master = class {
       minThreads: getNumber(settings.minThreads) ?? this.settings.minThreads,
       threadIdleTimeout: getNumber(settings.threadIdleTimeout) || this.settings.threadIdleTimeout
     };
-    if (this.started)
-      this.pool.config(this.settings);
+    if (this.started) this.pool.config(this.settings);
   }
   import(moduleSrc) {
-    if (!this.settings.disabled && !this.started)
-      this.start();
+    if (!this.settings.disabled && !this.started) this.start();
     const module2 = this.settings.disabled ? {
       load: () => import(moduleSrc.toString())
     } : new ConcurrentModule(this.pool, moduleSrc);
@@ -683,7 +664,7 @@ var Master = class {
   }
 };
 
-// libs/platform/src/node/index.cts
+// lib/src/node/index.cts
 var concurrent = new Master({
   create: () => {
     const BASE_URL = process.env["BASE_URL"];

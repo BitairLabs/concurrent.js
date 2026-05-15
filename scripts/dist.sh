@@ -5,15 +5,15 @@ source "$(dirname $0)/utils.sh"
 function bundle_index {
   local platform=$1
   local format=$2
-  local file=libs/platform/src/$platform/index.ts
+  local file=lib/src/$platform/index.ts
 
   case "$platform" in
   node)
-    local file=libs/platform/src/$platform/index.$([ $format == cjs ] && echo cts || echo ts)
+    local file=lib/src/$platform/index.$([ $format == cjs ] && echo cts || echo ts)
     local outfile=dist/src/node/index.$([ $format == cjs ] && echo cjs || echo js)
     ;;
   *)
-    local file=libs/platform/src/$platform/index.ts
+    local file=lib/src/$platform/index.ts
     local outfile=dist/src/$platform/index.js
     ;;
   esac
@@ -24,7 +24,7 @@ function bundle_index {
 function bundle_worker_script {
   local platform=$1
   local format=$2
-  local file=libs/platform/src/$platform/worker_script.ts
+  local file=lib/src/$platform/worker_script.ts
 
   case "$platform" in
   node)
@@ -57,7 +57,11 @@ build node
 build deno
 
 # Copy typedef
-echo dist/src/index.d.ts dist/src/index.d.cts | xargs -n 1 cp libs/platform/src/index.d.ts
+echo dist/src/index.d.ts dist/src/index.d.cts | xargs -n 1 cp lib/src/index.d.ts
 
 # Copy LICENSE
 cp LICENSE dist
+
+# Install locally
+cd dist
+npm link

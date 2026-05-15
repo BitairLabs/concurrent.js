@@ -1,0 +1,21 @@
+{
+  "type": "module",
+  "scripts": {
+    "lint": "npx tsc --noEmit",
+    "test": "node --test --import @bitair/lift/register test/index.ts",
+    "start": "node --import @bitair/lift/register src/index.js",
+    "start:bun": "bun  src/index.js"
+  },
+  "dependencies": {
+    "@bitair/concurrent.js": "^0.9.0",
+    "@bitair/lift": "^0.3.0",
+    "extra-bigint": "^1.2.1"
+  },
+  "devDependencies": {
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "^24.1.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3"
+  },
+  "license": "MIT"
+}

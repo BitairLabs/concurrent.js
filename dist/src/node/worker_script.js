@@ -1,18 +1,13 @@
 var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __publicField = (obj, key, value) => {
-  __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-  return value;
-};
 
-// libs/platform/src/node/worker_script.ts
+// lib/src/node/worker_script.ts
 import { parentPort } from "node:worker_threads";
 
-// libs/platform/src/core/constants.ts
+// lib/src/core/constants.ts
 var constants_exports = {};
 __export(constants_exports, {
   ErrorMessage: () => ErrorMessage,
@@ -104,7 +99,7 @@ var defaultConcurrencySettings = Object.assign(
   defaultThreadPoolSettings
 );
 
-// libs/platform/src/core/utils.ts
+// lib/src/core/utils.ts
 function isSymbol(val) {
   return typeof val === "symbol";
 }
@@ -147,7 +142,7 @@ function createObject(properties) {
           case 5:
             return "";
           case 6:
-            return Symbol();
+            return /* @__PURE__ */ Symbol();
           case 7:
             return new Function();
           case 8:
@@ -162,7 +157,7 @@ function createObject(properties) {
   return obj;
 }
 
-// libs/platform/src/core/error.ts
+// lib/src/core/error.ts
 var ConcurrencyError = class extends Error {
   code;
   constructor({ code, text }, ...params) {
@@ -172,23 +167,34 @@ var ConcurrencyError = class extends Error {
   }
 };
 
-// libs/platform/src/core/task.ts
+// lib/src/core/task.ts
 var Task = class {
   constructor(type, data) {
     this.type = type;
     this.data = data;
-    if (!TaskType[type])
-      throw new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
+    if (!TaskType[type]) throw new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
   }
+  type;
+  data;
 };
 
-// libs/platform/src/core/threaded_object.ts
-var _ThreadedObject = class {
+// lib/src/core/threaded_object.ts
+var ThreadedObject = class _ThreadedObject {
   constructor(thread, id, target) {
     this.thread = thread;
     this.id = id;
     this.target = target;
   }
+  thread;
+  id;
+  target;
+  static objectRegistry = new FinalizationRegistry(({ id, threadRef }) => {
+    const thread = threadRef.deref();
+    if (thread) {
+      const task = new Task(9 /* DisposeObject */, [id]);
+      thread.run(task).finally();
+    }
+  });
   static async create(thread, moduleSrc, exportName, ctorArgs) {
     const task = new Task(5 /* InstantiateObject */, [moduleSrc, exportName, ctorArgs]);
     const [id, properties] = await thread.run(task);
@@ -212,21 +218,16 @@ var _ThreadedObject = class {
     return result;
   }
 };
-var ThreadedObject = _ThreadedObject;
-__publicField(ThreadedObject, "objectRegistry", new FinalizationRegistry(({ id, threadRef }) => {
-  const thread = threadRef.deref();
-  if (thread) {
-    const task = new Task(9 /* DisposeObject */, [id]);
-    thread.run(task).finally();
-  }
-}));
 
-// libs/platform/src/core/message.ts
-var _Message = class {
+// lib/src/core/message.ts
+var Message = class _Message {
   constructor(id, replyCallback) {
     this.id = id;
     this.replyCallback = replyCallback;
   }
+  id;
+  replyCallback;
+  static lastMessageId = 0;
   static create(replyCallback) {
     this.lastMessageId += 1;
     return new _Message(this.lastMessageId, replyCallback);
@@ -235,10 +236,8 @@ var _Message = class {
     this.replyCallback(error, result);
   }
 };
-var Message = _Message;
-__publicField(Message, "lastMessageId", 0);
 
-// libs/platform/src/core/channel.ts
+// lib/src/core/channel.ts
 var Channel = class {
   worker;
   coroutineId;
@@ -288,7 +287,7 @@ var Channel = class {
   }
 };
 
-// libs/platform/src/core/common.ts
+// lib/src/core/common.ts
 function isInvocableTask(type) {
   return [1 /* InvokeFunction */, 4 /* InvokeStaticMethod */, 8 /* InvokeInstanceMethod */].includes(type);
 }
@@ -303,7 +302,7 @@ function getTaskArgs(type, data) {
   return data[argsIndex];
 }
 
-// libs/platform/src/core/worker_manager.ts
+// lib/src/core/worker_manager.ts
 var WorkerManager = class {
   objects = /* @__PURE__ */ new Map();
   channels = /* @__PURE__ */ new Map();
@@ -372,14 +371,12 @@ var WorkerManager = class {
       default:
         error = new ConcurrencyError(ErrorMessage.InvalidTaskType, type);
     }
-    if (channel)
-      this.channels.delete(coroutineId);
+    if (channel) this.channels.delete(coroutineId);
     return [error, result];
   }
   async handleDirectMessage(coroutineId, message) {
     const channel = this.channels.get(coroutineId);
-    if (!channel)
-      throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
+    if (!channel) throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
     let result, error;
     try {
       result = await channel.handleMessage(message[1], message[2]);
@@ -390,8 +387,7 @@ var WorkerManager = class {
   }
   async handleDirectMessageReply(coroutineId, reply) {
     const channel = this.channels.get(coroutineId);
-    if (!channel)
-      throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
+    if (!channel) throw new ConcurrencyError(ErrorMessage.ChannelNotFound, coroutineId);
     await channel.handleMessageReply(reply);
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -440,7 +436,6 @@ var WorkerManager = class {
     }
     return [error, result];
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async instantiateObject(moduleSrc, exportName, args = []) {
     let result, error;
     try {
@@ -457,8 +452,7 @@ var WorkerManager = class {
   }
   async getInstanceProperty(objectId, propName) {
     const obj = this.objects.get(objectId);
-    if (!obj)
-      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
     let result, error;
     try {
       result = Reflect.get(obj, propName);
@@ -469,8 +463,7 @@ var WorkerManager = class {
   }
   async setInstanceProperty(objectId, propName, value) {
     const obj = this.objects.get(objectId);
-    if (!obj)
-      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
     let result, error;
     try {
       result = Reflect.set(obj, propName, value);
@@ -481,8 +474,7 @@ var WorkerManager = class {
   }
   async invokeInstanceMethod(objectId, methodName, args = [], _hasChannel) {
     const obj = this.objects.get(objectId);
-    if (!obj)
-      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
     let result, error;
     try {
       const method = Reflect.get(obj, methodName);
@@ -494,8 +486,7 @@ var WorkerManager = class {
   }
   disposeObject(objectId) {
     const obj = this.objects.get(objectId);
-    if (!obj)
-      throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
+    if (!obj) throw new ConcurrencyError(ErrorMessage.ObjectNotFound, objectId);
     let error;
     try {
       this.objects.delete(objectId);
@@ -517,20 +508,16 @@ var WorkerManager = class {
   }
 };
 
-// libs/platform/src/node/worker_script.ts
+// lib/src/node/worker_script.ts
 var manager = new WorkerManager();
-if (!parentPort)
-  throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
+if (!parentPort) throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
 parentPort.on("message", async ([type, data]) => {
-  if (!parentPort)
-    throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
+  if (!parentPort) throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
   const reply = await manager.handleMessage(type, data, {
     postMessage: (message) => {
-      if (!parentPort)
-        throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
+      if (!parentPort) throw new ConcurrencyError(constants_exports.ErrorMessage.NotRunningOnWorker);
       parentPort.postMessage(message);
     }
   });
-  if (reply)
-    parentPort.postMessage(reply);
+  if (reply) parentPort.postMessage(reply);
 });

@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "build"
-  },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["test/deno/**/*.ts"]
-}

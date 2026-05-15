@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "build",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node", "bun", "deno"],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

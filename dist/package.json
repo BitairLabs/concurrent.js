@@ -1,8 +1,8 @@
 {
   "type": "module",
   "name": "@bitair/concurrent.js",
-  "version": "0.8.2",
-  "description": "Easy Multithreading for JavaScript (Node.js, Bun, Deno & Browser)",
+  "version": "0.9.0",
+  "description": "Non-blocking Concurrent Computation for JavaScript RTEs (Web Browsers, Node.js, Deno & Bun)",
   "main": "src/node/index.js",
   "browser": "src/browser/index.js",
   "types": "src/index.d.ts",
@@ -47,11 +47,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bitair-org/concurrent.js.git"
+    "url": "git+https://github.com/bitairlabs/concurrent.js.git"
   },
   "bugs": {
-    "url": "https://github.com/bitair-org/concurrent.js/issues"
+    "url": "https://github.com/bitairlabs/concurrent.js/issues"
   },
-  "homepage": "https://github.com/bitair-org/concurrent.js#readme",
+  "homepage": "https://github.com/bitairlabs/concurrent.js#readme",
   "license": "MIT"
 }
